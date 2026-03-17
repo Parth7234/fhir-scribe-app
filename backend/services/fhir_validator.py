@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from .auth import verify_token
 from pydantic import BaseModel
 from typing import Any
 import logging
@@ -105,7 +106,7 @@ def validate_bundle(bundle: dict) -> dict:
 
 
 @router.post("/validate")
-async def validate_fhir_bundle(input_data: FHIRBundleInput):
+async def validate_fhir_bundle(input_data: FHIRBundleInput, token: dict = Depends(verify_token)):
     """Validate a FHIR R4 Bundle for structural correctness and coding standards."""
     try:
         result = validate_bundle(input_data.bundle)

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from .auth import verify_token
 from pydantic import BaseModel
 import google.generativeai as genai
 import os
@@ -63,7 +64,7 @@ Output ONLY valid JSON. No markdown, no explanation.
 
 
 @router.post("/")
-async def process_fhir(input_data: TranscriptInput):
+async def process_fhir(input_data: TranscriptInput, token: dict = Depends(verify_token)):
     if not input_data.transcript or not input_data.transcript.strip():
         raise HTTPException(status_code=400, detail="No transcript provided")
 

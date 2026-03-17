@@ -1,4 +1,5 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Query
+from fastapi import APIRouter, File, UploadFile, HTTPException, Query, Depends
+from .auth import verify_token
 import google.generativeai as genai
 import os
 import time
@@ -34,7 +35,8 @@ LANGUAGE_PROMPTS = {
 @router.post("/")
 async def transcribe_audio(
     file: UploadFile = File(...),
-    language: Optional[str] = Query("hi-en", description="Language hint: 'hi' (Hindi), 'en' (English), 'hi-en' (Hinglish)")
+    language: Optional[str] = Query("hi-en", description="Language hint: 'hi' (Hindi), 'en' (English), 'hi-en' (Hinglish)"),
+    token: dict = Depends(verify_token)
 ):
     if not file:
         raise HTTPException(status_code=400, detail="No file uploaded")

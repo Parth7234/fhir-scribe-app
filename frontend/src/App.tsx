@@ -6,6 +6,7 @@ import {
   AlertCircle, Heart, Thermometer, ClipboardList, RefreshCw,
   CheckCircle2, XCircle, Shield, Edit3, Save, Download
 } from 'lucide-react';
+import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/clerk-react';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 import './App.css';
@@ -62,6 +63,7 @@ function App() {
   const [, setIsValidating] = useState(false);
   const [error, setError] = useState('');
   const [language, setLanguage] = useState('hi-en');
+  const { getToken } = useAuth();
   const [showFhirJson, setShowFhirJson] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -72,6 +74,21 @@ function App() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Setup Axios interceptor to add Clerk bear token
+  useEffect(() => {
+    const reqInterceptor = axios.interceptors.request.use(async (config) => {
+      const token = await getToken();
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+
+    return () => {
+      axios.interceptors.request.eject(reqInterceptor);
+    };
+  }, [getToken]);
 
   // Recording timer
   useEffect(() => {
@@ -228,23 +245,48 @@ function App() {
           </div>
 
           {/* Language Selector */}
-          <div className="flex items-center gap-1.5">
-            <Languages size={14} className="text-gray-400" />
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="custom-select bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-indigo-500/50 transition-colors"
-              id="language-selector"
-            >
-              <option value="hi-en">Hinglish</option>
-              <option value="hi">Hindi</option>
-              <option value="en">English</option>
-            </select>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5">
+              <Languages size={14} className="text-gray-400" />
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="custom-select bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                id="language-selector"
+              >
+                <option value="hi-en">Hinglish</option>
+                <option value="hi">Hindi</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            
+            <SignedIn>
+              <UserButton appearance={{ elements: { avatarBox: "w-8 h-8 rounded-lg" }}} />
+            </SignedIn>
           </div>
         </div>
       </div>
 
       <div className="max-w-lg mx-auto px-4 pt-6 space-y-5">
+        
+        <SignedOut>
+          <div className="glass-card p-8 flex flex-col items-center justify-center space-y-5 text-center mt-12">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-2">
+              <Stethoscope size={32} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white tracking-tight">Welcome Doctor</h2>
+              <p className="text-gray-400 text-sm mt-1">Please sign in to securely access your ambient scribe and FHIR records.</p>
+            </div>
+            <SignInButton mode="modal">
+              <button className="mt-4 w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3.5 px-8 rounded-xl transition-all shadow-lg shadow-indigo-500/30 active:scale-95">
+                Secure Doctor Sign In
+              </button>
+            </SignInButton>
+          </div>
+        </SignedOut>
+
+        <SignedIn>
 
         {/* === Recording Section === */}
         <div className="glass-card p-8 flex flex-col items-center space-y-5">
@@ -711,6 +753,7 @@ function App() {
             Powered by Gemini AI • FHIR R4 Compliant • Built for Indian Healthcare
           </p>
         </div>
+        </SignedIn>
       </div>
     </div>
   );
