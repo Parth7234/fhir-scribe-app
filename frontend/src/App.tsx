@@ -37,7 +37,7 @@ function App() {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isProcessingFhir, setIsProcessingFhir] = useState(false);
-  const [isValidating, setIsValidating] = useState(false);
+  const [, setIsValidating] = useState(false);
   const [error, setError] = useState('');
   const [language, setLanguage] = useState('hi-en');
   const [showFhirJson, setShowFhirJson] = useState(false);
