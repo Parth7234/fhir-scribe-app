@@ -4,11 +4,31 @@ import {
   Mic, Square, Loader2, FileText, Stethoscope, Activity,
   Pill, ChevronDown, ChevronUp, Clock, Zap, Languages,
   AlertCircle, Heart, Thermometer, ClipboardList, RefreshCw,
-  CheckCircle2, XCircle, Shield
+  CheckCircle2, XCircle, Shield, Edit3, Save, Download
 } from 'lucide-react';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 import './App.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+const DEMO_SCRIPTS = [
+  {
+    id: 'fever',
+    title: 'Viral Fever (Hinglish)',
+    text: 'Doctor: Hello Rohan, kya takleef ho rahi hai aapko?\nPatient: Doctor sahab, kal raat se bahut tez bukhar hai aur khasi bhi aa rahi hai.\nDoctor: Bukhar check kiya tha kitna hai?\nPatient: Haan, subah 102 tha.\nDoctor: Thik hai, main Dolo 650 likh raha hu, din me 3 baar khana aaram tbtk na mile. Aur Cofsils ki goli chuste rehna khasi ke liye. 3 din baad wapas dikhana.'
+  },
+  {
+    id: 'diabetes',
+    title: 'Diabetes Follow-up (English)',
+    text: 'Doctor: Good morning Mrs. Sharma. How are your sugar levels?\nPatient: Good morning doctor. My fasting sugar was 110 today.\nDoctor: That is excellent. Are you taking the Metformin 500mg regularly?\nPatient: Yes, twice a day after meals as you told me.\nDoctor: Let\'s continue the same dosage. I want to see you again in 3 months with a fresh HbA1c report.'
+  },
+  {
+    id: 'bp',
+    title: 'Hypertension Check (Hindi)',
+    text: 'Doctor: Namaste pitaji, blood pressure kaisa chal raha hai?\nPatient: Namaste doctor. Thoda chakkar aa raha tha kal se.\nDoctor: Dekhiye apka BP 150/90 hai, thoda zyada hai. Tel aur namak kam khayiye. Main Amlodipine 5mg ki roz subah ki goli shuru kar raha hu. Ek hafte baad aakar BP dubara check karwayein.'
+  }
+];
 
 interface StructuredNotes {
   chief_complaint: string;
@@ -34,6 +54,8 @@ function App() {
   const [transcript, setTranscript] = useState('');
   const [fhirData, setFhirData] = useState<any>(null);
   const [structuredNotes, setStructuredNotes] = useState<StructuredNotes | null>(null);
+  const [editedNotes, setEditedNotes] = useState<StructuredNotes | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isProcessingFhir, setIsProcessingFhir] = useState(false);
@@ -45,6 +67,7 @@ function App() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcriptionTimeMs, setTranscriptionTimeMs] = useState(0);
   const [fhirTimeMs, setFhirTimeMs] = useState(0);
+  const [selectedDemo, setSelectedDemo] = useState(DEMO_SCRIPTS[0].text);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -96,6 +119,8 @@ function App() {
       setTranscript('');
       setFhirData(null);
       setStructuredNotes(null);
+      setEditedNotes(null);
+      setIsEditing(false);
       setValidationResult(null);
       setTranscriptionTimeMs(0);
       setFhirTimeMs(0);
@@ -132,12 +157,19 @@ function App() {
     }
   };
 
-  const handleFhirProcessing = async (text: string) => {
+  const handleFhirProcessing = async (text: string, isDemo = false) => {
     setIsProcessingFhir(true);
+    if (isDemo) {
+      setTranscript(text);
+      setTranscriptionTimeMs(150); // Fake rapid transcription time for demo
+    }
+    
     try {
       const response = await axios.post(`${API_BASE_URL}/fhir/`, { transcript: text });
       setFhirData(response.data.fhir_bundle);
       setStructuredNotes(response.data.structured_notes);
+      setEditedNotes(response.data.structured_notes);
+      setIsEditing(false);
       setFhirTimeMs(response.data.total_processing_time_ms || 0);
 
       // Auto-validate
@@ -162,6 +194,21 @@ function App() {
       setIsValidating(false);
     }
   }, []);
+
+  const handleDownloadPdf = () => {
+    const element = document.getElementById('clinical-notes-print-area');
+    if (!element) return;
+
+    const opt = {
+      margin: 15,
+      filename: 'prescription_ai_scribe.pdf',
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+    };
+
+    html2pdf().set(opt).from(element).save();
+  };
 
   const totalTimeMs = transcriptionTimeMs + fhirTimeMs;
 
@@ -237,6 +284,29 @@ function App() {
           ) : (
             <p className="text-gray-400 text-sm font-medium">Tap to record consultation</p>
           )}
+
+          {/* Demo Actions */}
+          {!isRecording && !isTranscribing && !isProcessingFhir && (
+            <div className="w-full mt-6 pt-5 border-t border-white/5 flex flex-col gap-3">
+              <p className="text-center text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">Or Try a Demo Conversation</p>
+              <select
+                value={selectedDemo}
+                onChange={(e) => setSelectedDemo(e.target.value)}
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 transition-colors"
+              >
+                {DEMO_SCRIPTS.map(script => (
+                  <option key={script.id} value={script.text} className="bg-gray-900">{script.title}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => handleFhirProcessing(selectedDemo, true)}
+                className="w-full bg-white/[0.05] hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 group"
+              >
+                <Zap size={16} className="text-yellow-400 group-hover:scale-110 transition-transform" />
+                Run Demo Script
+              </button>
+            </div>
+          )}
         </div>
 
         {/* === Error Display === */}
@@ -307,48 +377,69 @@ function App() {
         )}
 
         {/* === Structured Clinical Notes === */}
-        {structuredNotes && (
+        {structuredNotes && editedNotes && (
           <div className="space-y-3 animate-fade-in-up">
             <div className="flex items-center justify-between px-1">
               <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                 <ClipboardList size={14} className="text-emerald-400" />
                 Structured Clinical Notes
               </h2>
-              {fhirTimeMs > 0 && (
-                <span className="metric-badge bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                  <Zap size={10} /> {(fhirTimeMs / 1000).toFixed(1)}s
-                </span>
-              )}
+              <div className="flex gap-2">
+                {isEditing ? (
+                  <button onClick={() => { setStructuredNotes(editedNotes); setIsEditing(false); }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-300 bg-emerald-500/20 rounded-md transition-colors hover:bg-emerald-500/30">
+                    <Save size={14} /> Save Edits
+                  </button>
+                ) : (
+                  <button onClick={() => setIsEditing(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-300 bg-white/5 rounded-md hover:bg-white/10 transition-colors">
+                    <Edit3 size={14} /> Edit
+                  </button>
+                )}
+                {!isEditing && (
+                  <button onClick={handleDownloadPdf} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-300 bg-indigo-500/20 rounded-md hover:bg-indigo-500/30 transition-colors">
+                    <Download size={14} /> PDF
+                  </button>
+                )}
+              </div>
             </div>
 
+            <div id="clinical-notes-print-area" className="space-y-3 bg-[#0f0f1a] p-2 rounded-xl">
+
             {/* Chief Complaint */}
-            {structuredNotes.chief_complaint && (
+            {editedNotes.chief_complaint && (
               <div className="clinical-section">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center pt-pr">
                     <AlertCircle size={13} className="text-amber-400" />
                   </div>
                   <h3 className="text-xs font-bold text-amber-300 uppercase tracking-wider">Chief Complaint</h3>
                 </div>
-                <p className="text-gray-300 text-sm leading-relaxed">{structuredNotes.chief_complaint}</p>
+                {isEditing ? (
+                  <textarea className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-gray-200 outline-none focus:border-amber-500/50 min-h-[80px]" value={editedNotes.chief_complaint} onChange={(e) => setEditedNotes({...editedNotes, chief_complaint: e.target.value})} />
+                ) : (
+                  <p className="text-gray-300 text-sm leading-relaxed">{structuredNotes.chief_complaint}</p>
+                )}
               </div>
             )}
 
             {/* HPI */}
-            {structuredNotes.history_of_present_illness && (
+            {editedNotes.history_of_present_illness && (
               <div className="clinical-section">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-lg bg-blue-500/10 flex items-center justify-center pt-pr">
                     <FileText size={13} className="text-blue-400" />
                   </div>
                   <h3 className="text-xs font-bold text-blue-300 uppercase tracking-wider">History of Present Illness</h3>
                 </div>
-                <p className="text-gray-300 text-sm leading-relaxed">{structuredNotes.history_of_present_illness}</p>
+                {isEditing ? (
+                  <textarea className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-gray-200 outline-none focus:border-blue-500/50 min-h-[100px]" value={editedNotes.history_of_present_illness} onChange={(e) => setEditedNotes({...editedNotes, history_of_present_illness: e.target.value})} />
+                ) : (
+                  <p className="text-gray-300 text-sm leading-relaxed">{structuredNotes.history_of_present_illness}</p>
+                )}
               </div>
             )}
 
             {/* Vitals */}
-            {structuredNotes.vitals && structuredNotes.vitals.length > 0 && (
+            {editedNotes.vitals && editedNotes.vitals.length > 0 && (
               <div className="clinical-section">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-6 h-6 rounded-lg bg-rose-500/10 flex items-center justify-center">
@@ -357,7 +448,7 @@ function App() {
                   <h3 className="text-xs font-bold text-rose-300 uppercase tracking-wider">Vitals</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {structuredNotes.vitals.map((vital, i) => (
+                  {editedNotes.vitals.map((vital, i) => (
                     <div key={i} className="flex items-center gap-2 bg-white/[0.02] rounded-xl p-3 border border-white/5">
                       <Thermometer size={14} className="text-rose-400/60 shrink-0" />
                       <div className="min-w-0">
@@ -371,20 +462,24 @@ function App() {
             )}
 
             {/* Examination Findings */}
-            {structuredNotes.examination_findings && (
+            {editedNotes.examination_findings && (
               <div className="clinical-section">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-lg bg-cyan-500/10 flex items-center justify-center pt-pr">
                     <Activity size={13} className="text-cyan-400" />
                   </div>
                   <h3 className="text-xs font-bold text-cyan-300 uppercase tracking-wider">Examination Findings</h3>
                 </div>
-                <p className="text-gray-300 text-sm leading-relaxed">{structuredNotes.examination_findings}</p>
+                {isEditing ? (
+                  <textarea className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-gray-200 outline-none focus:border-cyan-500/50 min-h-[80px]" value={editedNotes.examination_findings} onChange={(e) => setEditedNotes({...editedNotes, examination_findings: e.target.value})} />
+                ) : (
+                  <p className="text-gray-300 text-sm leading-relaxed">{structuredNotes.examination_findings}</p>
+                )}
               </div>
             )}
 
             {/* Diagnoses */}
-            {structuredNotes.diagnoses && structuredNotes.diagnoses.length > 0 && (
+            {editedNotes.diagnoses && editedNotes.diagnoses.length > 0 && (
               <div className="clinical-section">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-6 h-6 rounded-lg bg-orange-500/10 flex items-center justify-center">
@@ -393,8 +488,8 @@ function App() {
                   <h3 className="text-xs font-bold text-orange-300 uppercase tracking-wider">Diagnoses</h3>
                 </div>
                 <div className="space-y-2">
-                  {structuredNotes.diagnoses.map((dx, i) => (
-                    <div key={i} className="flex items-center justify-between bg-white/[0.02] rounded-xl p-3 border border-white/5">
+                  {editedNotes.diagnoses.map((dx, i) => (
+                    <div key={i} className="flex items-center justify-between bg-white/[0.02] rounded-xl p-3 border border-white/5 break-inside-avoid">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <div className={`w-2 h-2 rounded-full shrink-0 ${
                           dx.severity?.toLowerCase() === 'severe' ? 'bg-red-400' :
@@ -415,7 +510,7 @@ function App() {
             )}
 
             {/* Medications */}
-            {structuredNotes.medications && structuredNotes.medications.length > 0 && (
+            {editedNotes.medications && editedNotes.medications.length > 0 && (
               <div className="clinical-section">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
@@ -424,8 +519,8 @@ function App() {
                   <h3 className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Medications</h3>
                 </div>
                 <div className="space-y-2">
-                  {structuredNotes.medications.map((med, i) => (
-                    <div key={i} className="bg-white/[0.02] rounded-xl p-3 border border-white/5">
+                  {editedNotes.medications.map((med, i) => (
+                    <div key={i} className="bg-white/[0.02] rounded-xl p-3 border border-white/5 break-inside-avoid">
                       <p className="text-sm text-white font-semibold">{med.name}</p>
                       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
                         {med.dosage && <span className="text-[11px] text-gray-400">{med.dosage}</span>}
@@ -440,30 +535,39 @@ function App() {
             )}
 
             {/* Follow-up */}
-            {structuredNotes.follow_up && (
-              <div className="clinical-section">
+            {editedNotes.follow_up && (
+              <div className="clinical-section break-inside-avoid">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-lg bg-indigo-500/10 flex items-center justify-center pt-pr">
                     <RefreshCw size={13} className="text-indigo-400" />
                   </div>
                   <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wider">Follow-up</h3>
                 </div>
-                <p className="text-gray-300 text-sm leading-relaxed">{structuredNotes.follow_up}</p>
+                {isEditing ? (
+                  <textarea className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-gray-200 outline-none focus:border-indigo-500/50 min-h-[60px]" value={editedNotes.follow_up} onChange={(e) => setEditedNotes({...editedNotes, follow_up: e.target.value})} />
+                ) : (
+                  <p className="text-gray-300 text-sm leading-relaxed">{structuredNotes.follow_up}</p>
+                )}
               </div>
             )}
 
             {/* Advice */}
-            {structuredNotes.advice && (
-              <div className="clinical-section">
+            {editedNotes.advice && (
+              <div className="clinical-section break-inside-avoid">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 rounded-lg bg-teal-500/10 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-lg bg-teal-500/10 flex items-center justify-center pt-pr">
                     <ClipboardList size={13} className="text-teal-400" />
                   </div>
                   <h3 className="text-xs font-bold text-teal-300 uppercase tracking-wider">Advice</h3>
                 </div>
-                <p className="text-gray-300 text-sm leading-relaxed">{structuredNotes.advice}</p>
+                {isEditing ? (
+                  <textarea className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-gray-200 outline-none focus:border-teal-500/50 min-h-[80px]" value={editedNotes.advice} onChange={(e) => setEditedNotes({...editedNotes, advice: e.target.value})} />
+                ) : (
+                  <p className="text-gray-300 text-sm leading-relaxed">{structuredNotes.advice}</p>
+                )}
               </div>
             )}
+            </div>
           </div>
         )}
 

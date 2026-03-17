@@ -25,9 +25,9 @@ SUPPORTED_MIME_TYPES = {
 }
 
 LANGUAGE_PROMPTS = {
-    "hi-en": "Listen to this doctor-patient conversation audio carefully. It is in Hinglish (a mix of Hindi and English, commonly used in Indian medical settings). Provide a highly accurate, word-for-word text transcription of what is being said. Preserve the original language mix exactly as spoken. Do not translate or output anything other than the transcribed text.",
-    "hi": "Listen to this doctor-patient conversation audio carefully. It is in Hindi. Provide a highly accurate, word-for-word text transcription in Devanagari script. Do not translate to English or output anything other than the transcribed text.",
-    "en": "Listen to this doctor-patient conversation audio carefully. It is in English. Provide a highly accurate, word-for-word text transcription of what is being said. Do not output anything other than the transcribed text.",
+    "hi-en": "Listen to this doctor-patient conversation audio carefully. It is in Hinglish (a mix of Hindi and English). Provide a highly accurate, word-for-word text transcription. IMPORTANT: You MUST include speaker tags (diarization) for every line of dialogue and give them on new line each time . Use context and voice changes to differentiate between speakers. Format your output strictly like this: 'Doctor: <what the doctor said> then new line for Patient' and 'Patient: <what the patient said>'. Do not translate or output anything other than the transcribed text.",
+    "hi": "Listen to this doctor-patient conversation audio carefully. It is in Hindi. Provide a highly accurate, word-for-word text transcription in Devanagari script. IMPORTANT: You MUST include speaker tags (diarization) for every line of dialogue. Use context and voice changes to differentiate between speakers. Format your output strictly like this: 'Doctor: <what the doctor said>' and 'Patient: <what the patient said>'. Do not translate or output anything other than the transcribed text.",
+    "en": "Listen to this doctor-patient conversation audio carefully. It is in English. Provide a highly accurate, word-for-word text transcription. IMPORTANT: You MUST include speaker tags (diarization) for every line of dialogue. Use context and voice changes to differentiate between speakers. Format your output strictly like this: 'Doctor: <what the doctor said>' and 'Patient: <what the patient said>'. Do not output anything other than the transcribed text.",
 }
 
 
