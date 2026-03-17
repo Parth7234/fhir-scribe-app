@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+
+# Build output
+dist/
+build/
+
+# Environment files with secrets
+backend/.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.webm
+temp_*
+
+# IDE
+.vscode/
+.idea/
