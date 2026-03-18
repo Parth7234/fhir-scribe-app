@@ -1,4 +1,4 @@
-# 🩺 AI Ambient Scribe — Mobile-First FHIR Clinical Notes
+# AI Ambient Scribe — Mobile-First FHIR Clinical Notes
 
 > **PS-1**: Mobile-First Ambient AI Scribe with Real-Time FHIR Conversion  
 > **Team Eclipse** — Parth Singla (2401CS18) · Aditya Raj (2401MC56) · Aryan (2401CS48) · Manish Kumar (2401EE08)
@@ -9,7 +9,7 @@ A **production-deployed**, mobile-first AI-powered clinical documentation tool t
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 <p align="center">
   <img src="screenshots/login.png" alt="Doctor Login" width="250"/>
@@ -23,7 +23,7 @@ A **production-deployed**, mobile-first AI-powered clinical documentation tool t
 
 ---
 
-## 📝 Proposed Approach & Solution
+## Proposed Approach & Solution
 
 Indian healthcare faces a critical documentation bottleneck — doctors in Tier 2/3 cities spend nearly 30–40% of their consultation time manually writing notes, often in a mix of Hindi and English (Hinglish). This unstructured, paper-based workflow makes it nearly impossible to generate interoperable health records that comply with modern standards like HL7 FHIR R4. Existing voice-to-text solutions predominantly support English and lack clinical context understanding, making them ineffective for the Indian healthcare landscape.
 
@@ -37,7 +37,7 @@ This approach directly addresses all four PS-1 objectives: real-time multilingua
 
 ---
 
-## ✨ Features
+## Features
 
 | Feature | Description |
 |---------|-------------|
@@ -56,7 +56,7 @@ This approach directly addresses all four PS-1 objectives: real-time multilingua
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 graph LR
@@ -79,7 +79,7 @@ graph LR
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -95,7 +95,7 @@ graph LR
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - **Node.js** 18+
@@ -143,7 +143,7 @@ Navigate to **http://localhost:5173** on your mobile browser or desktop.
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -156,7 +156,7 @@ All protected endpoints require a valid `Authorization: Bearer <clerk_jwt>` head
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 fhir-scribe-app/
@@ -188,7 +188,7 @@ fhir-scribe-app/
 
 ---
 
-## 🎯 PS-1 Objectives Mapping
+## PS-1 Objectives Mapping
 
 | Objective | Implementation | Status |
 |-----------|---------------|--------|
@@ -202,7 +202,7 @@ fhir-scribe-app/
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 | Component | Platform | Details |
 |-----------|----------|---------|
@@ -211,7 +211,7 @@ fhir-scribe-app/
 
 ---
 
-## 👥 Team Eclipse
+## Team Eclipse
 
 | Member | Roll No |
 |--------|---------|
@@ -222,4 +222,4 @@ fhir-scribe-app/
 
 ---
 
-*Built with ❤️ for Indian Healthcare*
+
