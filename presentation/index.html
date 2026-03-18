@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Ambient Scribe — Team Eclipse</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- SLIDE 1: Title -->
+<div class="slide title-slide active" id="slide-1">
+  <div class="team-badge">🌑 TEAM ECLIPSE</div>
+  <h1 class="main-title">AI Ambient Scribe</h1>
+  <p class="subtitle">Mobile-First Clinical Documentation with Real-Time FHIR R4 Conversion — Built for Bharat's Healthcare 🇮🇳</p>
+  <div class="ps-tag">PS-1 • Mobile-First Ambient AI Scribe with Real-Time FHIR Conversion</div>
+</div>
+
+<!-- SLIDE 2: Problem Statement -->
+<div class="slide" id="slide-2">
+  <h2 class="slide-title">The Problem</h2>
+  <div class="grid-2">
+    <div>
+      <p class="section-label">Context</p>
+      <ul class="bullet-list">
+        <li>Indian doctors spend 30-40% of time on manual documentation</li>
+        <li>Most clinical conversations happen in Hinglish — no tools support it</li>
+        <li>Paper prescriptions = no structured data for HMIS systems</li>
+        <li>Tier 2/3 city clinics lack digital infrastructure</li>
+      </ul>
+      <div class="highlight-box" style="margin-top:30px;">
+        <p style="font-size:15px;color:#e2e8f0;line-height:1.7"><strong style="color:#a78bfa">Objective:</strong> Capture doctor-patient conversations in real-time (Hindi + English mix), convert them into structured clinical notes, and map to <strong style="color:#34d399">FHIR R4</strong> compliant resources.</p>
+      </div>
+    </div>
+    <div>
+      <p class="section-label">Key Stakeholders</p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card"><div class="card-icon purple-bg">🏥</div><h3>General Physicians</h3><p>SME hospitals needing quick documentation</p></div>
+        <div class="card"><div class="card-icon green-bg">👨‍⚕️</div><h3>Junior Doctors & DMOs</h3><p>High patient volume, minimal time per patient</p></div>
+        <div class="card"><div class="card-icon blue-bg">🏪</div><h3>Clinic Owners — Tier 2/3 Cities</h3><p>Need affordable digital documentation tools</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: App Demo Screenshots -->
+<div class="slide" id="slide-3">
+  <h2 class="slide-title">📱 Live App Demo</h2>
+  <p style="font-size:16px;color:var(--text-dim);margin-bottom:30px">Production-deployed mobile-first app — accessible from any phone browser</p>
+  <div class="screenshot-container">
+    <div style="text-align:center">
+      <img src="../screenshots/login.png" alt="Doctor Login" style="max-height:400px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+      <p style="font-size:12px;color:var(--text-dim);margin-top:10px;font-weight:600">🔐 Secure Doctor Login</p>
+    </div>
+    <div style="text-align:center">
+      <img src="../screenshots/main.png" alt="Recording & Transcript" style="max-height:400px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+      <p style="font-size:12px;color:var(--text-dim);margin-top:10px;font-weight:600">🎤 Recording & Hinglish Transcript</p>
+    </div>
+    <div style="text-align:center">
+      <img src="../screenshots/clinical_notes.png" alt="Clinical Notes" style="max-height:400px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+      <p style="font-size:12px;color:var(--text-dim);margin-top:10px;font-weight:600">📋 Editable Clinical Notes + PDF</p>
+    </div>
+    <div style="text-align:center">
+      <img src="../screenshots/fhir_bundle.png" alt="FHIR R4 Bundle" style="max-height:400px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+      <p style="font-size:12px;color:var(--text-dim);margin-top:10px;font-weight:600">🏥 FHIR R4 Bundle + Validation</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 4: Solution Overview -->
+<div class="slide" id="slide-4">
+  <h2 class="slide-title">Our Solution</h2>
+  <p style="font-size:18px;color:var(--text-dim);margin-bottom:35px;max-width:800px">A mobile-first AI-powered clinical scribe that listens, transcribes, structures, and validates — all in real-time.</p>
+  <div class="grid-3">
+    <div class="card"><div class="card-icon purple-bg">🎤</div><h3>Hinglish Voice → Text</h3><p>Real-time transcription with <strong>Doctor/Patient speaker tags</strong> using Gemini 2.5 Flash. Supports Hindi, English & Hinglish.</p></div>
+    <div class="card"><div class="card-icon green-bg">📋</div><h3>Structured Clinical Notes</h3><p>Auto-extracts Chief Complaint, HPI, Vitals, Diagnoses (ICD-10), Medications (RxNorm), Follow-up & Advice.</p></div>
+    <div class="card"><div class="card-icon blue-bg">🏥</div><h3>FHIR R4 Bundle</h3><p>Generates Patient, Encounter, Observation, Condition & MedicationRequest with SNOMED-CT, LOINC coding.</p></div>
+    <div class="card"><div class="card-icon amber-bg">📄</div><h3>Editable & Downloadable PDF</h3><p>Doctors can edit AI-generated notes inline and download a polished prescription PDF instantly.</p></div>
+    <div class="card"><div class="card-icon rose-bg">🔐</div><h3>Clerk Authentication</h3><p>Secure doctor sign-in with JWT-based route protection on both frontend and backend.</p></div>
+    <div class="card"><div class="card-icon cyan-bg">🚀</div><h3>Deployed & Production-Ready</h3><p>Frontend on <strong>Vercel</strong>, Backend on <strong>Render</strong> — accessible from any mobile browser.</p></div>
+  </div>
+</div>
+
+<!-- SLIDE 5: Architecture -->
+<div class="slide" id="slide-5">
+  <h2 class="slide-title">System Architecture</h2>
+  <div class="arch-flow">
+    <div class="arch-box" style="border-color:rgba(124,58,237,0.3)">
+      <div class="icon">📱</div>
+      <div class="label">Mobile Browser</div>
+      <div class="sub">React 19 + Vite + TailwindCSS</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box" style="border-color:rgba(99,102,241,0.3)">
+      <div class="icon">🔐</div>
+      <div class="label">Clerk Auth</div>
+      <div class="sub">JWT Token Verification</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box" style="border-color:rgba(59,130,246,0.3)">
+      <div class="icon">⚡</div>
+      <div class="label">FastAPI Backend</div>
+      <div class="sub">Python + Uvicorn on Render</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box" style="border-color:rgba(16,185,129,0.3)">
+      <div class="icon">🧠</div>
+      <div class="label">Gemini 2.5 Flash</div>
+      <div class="sub">Transcription + NLP</div>
+    </div>
+  </div>
+  <div style="margin-top:40px">
+    <p class="section-label">Pipeline Flow</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;font-size:14px">
+      <span style="background:rgba(124,58,237,0.15);padding:8px 16px;border-radius:10px;border:1px solid rgba(124,58,237,0.2)">🎤 Audio (WebM)</span>
+      <span style="color:#7c3aed">→</span>
+      <span style="background:rgba(59,130,246,0.15);padding:8px 16px;border-radius:10px;border:1px solid rgba(59,130,246,0.2)">📝 Hinglish Transcript</span>
+      <span style="color:#7c3aed">→</span>
+      <span style="background:rgba(16,185,129,0.15);padding:8px 16px;border-radius:10px;border:1px solid rgba(16,185,129,0.2)">📋 Structured Notes</span>
+      <span style="color:#7c3aed">→</span>
+      <span style="background:rgba(245,158,11,0.15);padding:8px 16px;border-radius:10px;border:1px solid rgba(245,158,11,0.2)">🏥 FHIR R4 Bundle</span>
+      <span style="color:#7c3aed">→</span>
+      <span style="background:rgba(244,63,94,0.15);padding:8px 16px;border-radius:10px;border:1px solid rgba(244,63,94,0.2)">✅ Validation</span>
+    </div>
+  </div>
+  <div style="margin-top:30px">
+    <p class="section-label">Tech Stack</p>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+      <div class="tech-row"><span class="tech-label">Frontend</span><span class="tech-value">React 19 + TypeScript + Vite + Tailwind CSS</span></div>
+      <div class="tech-row"><span class="tech-label">Backend</span><span class="tech-value">Python FastAPI + Uvicorn</span></div>
+      <div class="tech-row"><span class="tech-label">AI Engine</span><span class="tech-value">Google Gemini 2.5 Flash</span></div>
+      <div class="tech-row"><span class="tech-label">Auth</span><span class="tech-value">Clerk (JWT + JWKS)</span></div>
+      <div class="tech-row"><span class="tech-label">Data Standard</span><span class="tech-value">HL7 FHIR R4</span></div>
+      <div class="tech-row"><span class="tech-label">Deployment</span><span class="tech-value">Vercel (FE) + Render (BE)</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 6: Key Feature — Hinglish Voice -->
+<div class="slide" id="slide-6">
+  <h2 class="slide-title">🎤 Hinglish Voice → Text with Speaker Tags</h2>
+  <div class="grid-2">
+    <div>
+      <div class="highlight-box" style="margin-top:0">
+        <p class="section-label" style="margin-bottom:12px">Live Transcription Example</p>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:2;color:#e2e8f0">
+          <p><span style="color:#a78bfa;font-weight:700">Doctor:</span> Hello Rohan, kya takleef ho rahi hai aapko?</p>
+          <p><span style="color:#34d399;font-weight:700">Patient:</span> Doctor sahab, kal raat se bahut tez bukhar hai aur khasi bhi aa rahi hai.</p>
+          <p><span style="color:#a78bfa;font-weight:700">Doctor:</span> Bukhar check kiya tha kitna hai?</p>
+          <p><span style="color:#34d399;font-weight:700">Patient:</span> Haan, subah 102 tha.</p>
+          <p><span style="color:#a78bfa;font-weight:700">Doctor:</span> Thik hai, main Dolo 650 likh raha hu...</p>
+        </div>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:12px">
+        <div class="card" style="flex:1;padding:16px;text-align:center"><p style="font-size:28px;font-weight:800;color:#a78bfa">3</p><p style="font-size:11px;color:var(--text-dim)">Languages Supported</p></div>
+        <div class="card" style="flex:1;padding:16px;text-align:center"><p style="font-size:28px;font-weight:800;color:#34d399">Auto</p><p style="font-size:11px;color:var(--text-dim)">Speaker Diarization</p></div>
+        <div class="card" style="flex:1;padding:16px;text-align:center"><p style="font-size:28px;font-weight:800;color:#f59e0b">&lt;1s</p><p style="font-size:11px;color:var(--text-dim)">Transcription Speed</p></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:16px">
+      <p class="section-label">Key Highlights</p>
+      <ul class="bullet-list">
+        <li>Gemini 2.5 Flash for audio-to-text</li>
+        <li>Automatic Doctor/Patient speaker tagging</li>
+        <li>Supports Hindi, English & Hinglish (code-mixed)</li>
+        <li>Live waveform animation during recording</li>
+        <li>Demo scripts for instant testing</li>
+        <li>WebM audio capture via MediaRecorder API</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 7: Key Feature — FHIR & Notes -->
+<div class="slide" id="slide-7">
+  <h2 class="slide-title">📋 Structured Notes & FHIR R4 Bundle</h2>
+  <div class="grid-2">
+    <div>
+      <p class="section-label">Auto-Generated Clinical Notes</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="card" style="padding:16px;border-left:3px solid #f59e0b"><h3 style="font-size:14px;color:#fbbf24">⚠️ Chief Complaint</h3><p>High fever and cough</p></div>
+        <div class="card" style="padding:16px;border-left:3px solid #3b82f6"><h3 style="font-size:14px;color:#60a5fa">📝 HPI</h3><p>Patient reports high fever and cough since last night. Fever was 102°F.</p></div>
+        <div class="card" style="padding:16px;border-left:3px solid #f43f5e"><h3 style="font-size:14px;color:#fb7185">❤️ Vitals</h3><p>Temperature: 102 Fahrenheit</p></div>
+        <div class="card" style="padding:16px;border-left:3px solid #10b981"><h3 style="font-size:14px;color:#34d399">💊 Medications</h3><p>Dolo 650 (650mg, 3x/day) • Cofsils (as needed)</p></div>
+        <div class="card" style="padding:16px;border-left:3px solid #6366f1"><h3 style="font-size:14px;color:#818cf8">🔄 Follow-up</h3><p>3 days</p></div>
+      </div>
+    </div>
+    <div>
+      <p class="section-label">FHIR R4 Resources Generated</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px">
+        <span style="background:rgba(99,102,241,0.15);padding:6px 14px;border-radius:8px;font-size:13px;border:1px solid rgba(99,102,241,0.2);color:#a5b4fc">Patient: 1</span>
+        <span style="background:rgba(99,102,241,0.15);padding:6px 14px;border-radius:8px;font-size:13px;border:1px solid rgba(99,102,241,0.2);color:#a5b4fc">Encounter: 1</span>
+        <span style="background:rgba(99,102,241,0.15);padding:6px 14px;border-radius:8px;font-size:13px;border:1px solid rgba(99,102,241,0.2);color:#a5b4fc">Condition: 2</span>
+        <span style="background:rgba(99,102,241,0.15);padding:6px 14px;border-radius:8px;font-size:13px;border:1px solid rgba(99,102,241,0.2);color:#a5b4fc">Observation: 1</span>
+        <span style="background:rgba(99,102,241,0.15);padding:6px 14px;border-radius:8px;font-size:13px;border:1px solid rgba(99,102,241,0.2);color:#a5b4fc">MedicationRequest: 2</span>
+      </div>
+      <div class="highlight-box" style="margin-top:0">
+        <p style="font-size:12px;font-weight:700;color:#34d399;margin-bottom:8px">✅ FHIR R4 Validation: PASSED — 7 resources • 0 warnings</p>
+        <p class="section-label" style="margin-top:16px;margin-bottom:8px">Coding Systems Used</p>
+        <div style="font-size:13px;line-height:2;color:var(--text-dim)">
+          <p>• <strong style="color:#e2e8f0">SNOMED CT</strong> — Clinical findings & conditions</p>
+          <p>• <strong style="color:#e2e8f0">ICD-10</strong> — Diagnosis codes</p>
+          <p>• <strong style="color:#e2e8f0">LOINC</strong> — Observations & vitals</p>
+          <p>• <strong style="color:#e2e8f0">RxNorm</strong> — Medications</p>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px;padding:14px;text-align:center;border-color:rgba(16,185,129,0.2)">
+        <p style="font-size:13px;color:#34d399;font-weight:600">📄 Editable Notes + Downloadable PDF</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 8: PS-1 Objective Mapping -->
+<div class="slide" id="slide-8">
+  <h2 class="slide-title">✅ PS-1 Objective Mapping</h2>
+  <table class="mapping-table">
+    <tr><th>Objective</th><th>Our Implementation</th><th>Status</th></tr>
+    <tr><td>Capture conversations in real-time (Hindi + English mix)</td><td>MediaRecorder API → Gemini 2.5 Flash transcription with Hinglish prompt & speaker diarization</td><td class="check">✅ Done</td></tr>
+    <tr><td>Convert speech into structured clinical notes</td><td>Structured Notes: CC, HPI, Vitals, Diagnoses, Medications, Follow-up, Advice — all editable</td><td class="check">✅ Done</td></tr>
+    <tr><td>Map entities to FHIR-compliant resources</td><td>Patient, Encounter, Observation, Condition, MedicationRequest with SNOMED/ICD-10/LOINC/RxNorm</td><td class="check">✅ Done</td></tr>
+    <tr><td>Demonstrate documentation speed improvement</td><td>Real-time pipeline speed metrics — Transcription + FHIR processing time shown in app</td><td class="check">✅ Done</td></tr>
+    <tr><td>Functional Prototype (Android/Mobile)</td><td>Mobile-first PWA-ready web app deployed on Vercel — works on any phone browser</td><td class="check">✅ Done</td></tr>
+    <tr><td>FHIR Mapping Layer</td><td>Full FHIR R4 Bundle generation with auto-validation engine</td><td class="check">✅ Done</td></tr>
+    <tr><td>Multilingual Capability</td><td>Hindi, English, and Hinglish support with language selector</td><td class="check">✅ Done</td></tr>
+  </table>
+</div>
+
+<!-- SLIDE 9: Deployment & Security -->
+<div class="slide" id="slide-9">
+  <h2 class="slide-title">🚀 Deployment & Security</h2>
+  <div class="grid-2">
+    <div>
+      <p class="section-label">Production Deployment</p>
+      <div class="card" style="margin-bottom:14px;border-left:3px solid #7c3aed">
+        <h3>🌐 Frontend — Vercel</h3>
+        <p>React 19 + Vite production build, global CDN, instant deployments, environment variable management for API URLs</p>
+      </div>
+      <div class="card" style="margin-bottom:14px;border-left:3px solid #6366f1">
+        <h3>⚙️ Backend — Render</h3>
+        <p>FastAPI + Uvicorn with CORS configuration, auto-deploy from Git, environment secrets for Gemini API key</p>
+      </div>
+      <div class="card" style="border-left:3px solid #3b82f6">
+        <h3>📡 API Endpoints</h3>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:12px;line-height:2;margin-top:8px">
+          POST /api/transcribe/ — Audio → Text<br>
+          POST /api/fhir/ — Transcript → FHIR + Notes<br>
+          POST /api/fhir/validate — Bundle Validation
+        </p>
+      </div>
+    </div>
+    <div>
+      <p class="section-label">Security & Authentication</p>
+      <div class="card" style="margin-bottom:14px;border-left:3px solid #10b981">
+        <h3>🔐 Clerk Authentication</h3>
+        <p>JWT-based secure doctor sign-in. JWKS public key verification on backend. Protected API routes — no unauthenticated access.</p>
+      </div>
+      <div class="card" style="margin-bottom:14px;border-left:3px solid #f59e0b">
+        <h3>🛡️ Backend Route Protection</h3>
+        <p>Every API endpoint requires Bearer token. Token signature verified against Clerk's JWKS endpoint using RS256 algorithm.</p>
+      </div>
+      <div class="card" style="border-left:3px solid #f43f5e">
+        <h3>🔒 Frontend Protection</h3>
+        <p>SignedIn/SignedOut guards. Axios interceptor auto-attaches auth tokens. Unauthorized users see login-only screen.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 9: Team & Thank You -->
+<div class="slide" id="slide-10" style="align-items:center;text-align:center">
+  <div class="team-badge" style="margin-bottom:20px">🌑 TEAM ECLIPSE</div>
+  <h2 class="slide-title" style="margin-bottom:40px">Meet the Team</h2>
+  <div class="team-grid" style="max-width:900px;margin:0 auto">
+    <div class="team-card">
+      <div class="team-avatar">PS</div>
+      <p class="name">Parth Singla</p>
+      <p class="roll">2401CS18</p>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">AR</div>
+      <p class="name">Aditya Raj</p>
+      <p class="roll">2401MC56</p>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">AY</div>
+      <p class="name">Aryan</p>
+      <p class="roll">2401CS48</p>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">MK</div>
+      <p class="name">Manish Kumar</p>
+      <p class="roll">2401EE08</p>
+    </div>
+  </div>
+  <div style="margin-top:50px">
+    <p style="font-size:32px;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Thank You! 🙏</p>
+    <p style="color:var(--text-dim);margin-top:10px;font-size:15px">Built with ❤️ for Indian Healthcare</p>
+  </div>
+</div>
+
+<!-- Navigation -->
+<div class="nav-bar">
+  <button class="nav-btn" onclick="changeSlide(-1)">←</button>
+  <span class="slide-counter" id="counter">1 / 9</span>
+  <button class="nav-btn" onclick="changeSlide(1)">→</button>
+</div>
+
+<script>
+let current = 1;
+const total = 10;
+
+function showSlide(n) {
+  document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+  document.getElementById('slide-' + n).classList.add('active');
+  document.getElementById('counter').textContent = n + ' / ' + total;
+}
+
+function changeSlide(dir) {
+  current += dir;
+  if (current < 1) current = 1;
+  if (current > total) current = total;
+  showSlide(current);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); }
+});
+
+// Touch/swipe support
+let touchStartX = 0;
+document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend', (e) => {
+  const diff = touchStartX - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1);
+});
+</script>
+</body>
+</html>
