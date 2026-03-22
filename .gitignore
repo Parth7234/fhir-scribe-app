@@ -9,6 +9,9 @@ build/
 
 # Environment files with secrets
 backend/.env
+frontend/.env
+firebase-service-account.json
+**/firebase-service-account.json
 
 # OS files
 .DS_Store

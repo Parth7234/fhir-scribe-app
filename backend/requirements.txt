@@ -4,7 +4,6 @@ python-multipart
 pydantic
 python-dotenv
 google-generativeai
-pyjwt
-cryptography
+firebase-admin
 httpx
 fhir.resources
