@@ -1,7 +1,5 @@
-const CACHE_NAME = 'ai-scribe-v1';
+const CACHE_NAME = 'ai-scribe-v2';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
@@ -29,22 +27,29 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for API calls, cache-first for static assets
+// Fetch: network-first for everything, fallback to cache for static assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Always go to network for API calls
-  if (url.pathname.startsWith('/api')) {
-    event.respondWith(fetch(request));
+  // Always go to network for API calls and navigation (SPA routes)
+  if (url.pathname.startsWith('/api') || request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(() => {
+        // For navigation requests, serve index.html from network cache if offline
+        if (request.mode === 'navigate') {
+          return caches.match('/index.html');
+        }
+        return new Response('Offline', { status: 503 });
+      })
+    );
     return;
   }
 
-  // Cache-first for static assets
+  // Cache-first for static assets (icons, manifest, fonts)
   event.respondWith(
     caches.match(request).then((cached) => {
       return cached || fetch(request).then((response) => {
-        // Cache successful responses
         if (response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
