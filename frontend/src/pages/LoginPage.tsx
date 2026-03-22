@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Stethoscope, Heart, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { usePwaInstall } from '../hooks/usePwaInstall';
+import { Stethoscope, Heart, Mail, Lock, Loader2, AlertCircle, Download, Smartphone } from 'lucide-react';
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'doctor' | 'patient'>('doctor');
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { canInstall, install } = usePwaInstall();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +47,24 @@ export default function LoginPage() {
             <p className="text-gray-400 text-sm mt-1">Sign in to access your clinical dashboard</p>
           </div>
         </div>
+
+        {/* PWA Install Banner */}
+        {canInstall && (
+          <button
+            onClick={install}
+            className="w-full glass-card p-4 flex items-center gap-3 hover:bg-white/[0.06] transition-all group animate-fade-in-up border border-indigo-500/20 bg-indigo-500/5"
+            id="install-app-btn"
+          >
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+              <Smartphone size={18} className="text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-bold text-white">Install App</p>
+              <p className="text-[11px] text-gray-400">Add to home screen for the best experience</p>
+            </div>
+            <Download size={18} className="text-indigo-400 group-hover:translate-y-0.5 transition-transform" />
+          </button>
+        )}
 
         {/* Role Tabs */}
         <div className="glass-card p-1.5 flex gap-1" id="role-tabs">
