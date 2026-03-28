@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from .auth import verify_token
 from pydantic import BaseModel
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import os
 import json
 import time
@@ -9,10 +10,14 @@ import logging
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Use gemini-2.5-flash-lite for fast structured extraction (3-4s vs 16-18s for thinking model)
+FHIR_MODEL = "gemini-2.5-flash-lite"
 
 
 class TranscriptInput(BaseModel):
@@ -73,18 +78,15 @@ async def process_fhir(input_data: TranscriptInput, token: dict = Depends(verify
 
     try:
         # --- Generate FHIR Bundle ---
-        fhir_model = genai.GenerativeModel(
-            'gemini-2.5-flash',
-            system_instruction=FHIR_SYSTEM_PROMPT,
-            generation_config=genai.GenerationConfig(
+        fhir_start = time.time()
+        fhir_response = client.models.generate_content(
+            model=FHIR_MODEL,
+            contents=f"Transcript to process:\n{input_data.transcript}",
+            config=types.GenerateContentConfig(
+                system_instruction=FHIR_SYSTEM_PROMPT,
                 temperature=0.0,
                 response_mime_type="application/json",
-            )
-        )
-
-        fhir_start = time.time()
-        fhir_response = fhir_model.generate_content(
-            f"Transcript to process:\n{input_data.transcript}"
+            ),
         )
         fhir_time_ms = int((time.time() - fhir_start) * 1000)
 
@@ -101,18 +103,15 @@ async def process_fhir(input_data: TranscriptInput, token: dict = Depends(verify
         logger.info(f"FHIR Bundle generated in {fhir_time_ms}ms with {len(fhir_bundle.get('entry', []))} entries")
 
         # --- Generate Structured Clinical Notes ---
-        notes_model = genai.GenerativeModel(
-            'gemini-2.5-flash',
-            system_instruction=STRUCTURED_NOTES_PROMPT,
-            generation_config=genai.GenerationConfig(
+        notes_start = time.time()
+        notes_response = client.models.generate_content(
+            model=FHIR_MODEL,
+            contents=f"Transcript:\n{input_data.transcript}",
+            config=types.GenerateContentConfig(
+                system_instruction=STRUCTURED_NOTES_PROMPT,
                 temperature=0.0,
                 response_mime_type="application/json",
-            )
-        )
-
-        notes_start = time.time()
-        notes_response = notes_model.generate_content(
-            f"Transcript:\n{input_data.transcript}"
+            ),
         )
         notes_time_ms = int((time.time() - notes_start) * 1000)
 
@@ -146,3 +145,4 @@ async def process_fhir(input_data: TranscriptInput, token: dict = Depends(verify
     except Exception as e:
         logger.error(f"FHIR processing failed: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Query, Depends
 from .auth import verify_token
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import os
 import time
 import logging
@@ -8,7 +9,8 @@ from dotenv import load_dotenv
 from typing import Optional
 
 load_dotenv(override=True)
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -60,16 +62,14 @@ async def transcribe_audio(
         with open(temp_file_path, 'wb') as out_file:
             out_file.write(content)
 
-        audio_part = {
-            "mime_type": mime_type,
-            "data": content
-        }
+        audio_part = types.Part.from_bytes(data=content, mime_type=mime_type)
 
         # Generate transcript using Gemini
-        model = genai.GenerativeModel('gemini-2.5-flash')
-
         start_time = time.time()
-        response = model.generate_content([prompt, audio_part])
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[prompt, audio_part],
+        )
         transcription_time_ms = int((time.time() - start_time) * 1000)
 
         logger.info(f"Transcription completed in {transcription_time_ms}ms")
@@ -88,3 +88,4 @@ async def transcribe_audio(
     finally:
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
+
