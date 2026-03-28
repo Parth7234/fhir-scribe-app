@@ -1,22 +1,31 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
+import { useAuth } from '../contexts/AuthContext';
 import {
   ArrowLeft, Loader2, AlertCircle, FileText, Heart, Thermometer,
   Stethoscope, Pill, Activity, RefreshCw, ClipboardList, Clock,
-  ChevronDown, ChevronUp, Download
+  ChevronDown, ChevronUp, Download, Share2, Send
 } from 'lucide-react';
+import PrintablePDFReport from './PrintablePDFReport';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
 export default function ReportDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { userProfile } = useAuth();
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showFhir, setShowFhir] = useState(false);
   const [error, setError] = useState('');
+
+  // Share modal state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareEmail, setShareEmail] = useState('');
+  const [shareMessage, setShareMessage] = useState('');
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   useEffect(() => {
     if (id) fetchReport();
@@ -24,11 +33,24 @@ export default function ReportDetailPage() {
 
   const fetchReport = async () => {
     try {
-      const snap = await getDoc(doc(db, 'reports', id!));
-      if (snap.exists()) {
-        setReport({ id: snap.id, ...snap.data() });
-      } else {
+      const { data, error: err } = await supabase
+        .from('reports')
+        .select('*')
+        .eq('id', id!)
+        .single();
+
+      if (err || !data) {
         setError('Report not found.');
+      } else {
+        setReport({
+          id: data.id,
+          patientName: data.patient_name,
+          doctorName: data.doctor_name,
+          transcript: data.transcript,
+          structuredNotes: data.structured_notes,
+          fhirBundle: data.fhir_bundle,
+          createdAt: data.created_at,
+        });
       }
     } catch (err) {
       console.error('Failed to fetch report:', err);
@@ -39,18 +61,44 @@ export default function ReportDetailPage() {
   };
 
   const handleDownloadPdf = () => {
-    const el = document.getElementById('report-print-area');
+    const el = document.getElementById('pdf-print-area');
     if (!el) return;
     html2pdf().set({
-      margin: 15, filename: `report_${id}.pdf`,
+      margin: 0,
+      filename: `clinical_report_${report?.patientName?.replace(/\s+/g, '_') || id}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     }).from(el).save();
   };
 
+  const handleShare = async () => {
+    if (!shareEmail.trim() || !id || !userProfile) return;
+    setShareLoading(true);
+    try {
+      const { error } = await supabase.from('shared_reports').insert({
+        report_id: id,
+        sender_id: userProfile.uid,
+        recipient_email: shareEmail.trim().toLowerCase(),
+        message: shareMessage.trim() || null,
+      });
+      if (error) throw error;
+      setShareSuccess(true);
+      setTimeout(() => {
+        setShareModalOpen(false);
+        setShareEmail('');
+        setShareMessage('');
+        setShareSuccess(false);
+      }, 1500);
+    } catch (err) {
+      console.error('Failed to share report:', err);
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
   const formatDate = (ts: any) => {
-    const d = ts?.toDate?.() || new Date();
+    const d = typeof ts === 'string' ? new Date(ts) : ts?.toDate?.() || new Date();
     return new Intl.DateTimeFormat('en-IN', {
       day: 'numeric', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
@@ -83,11 +131,21 @@ export default function ReportDetailPage() {
             <button onClick={() => navigate('/dashboard')} className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"><ArrowLeft size={18} /></button>
             <div><h1 className="text-sm font-bold text-white tracking-tight">{report.patientName}</h1><p className="text-[10px] text-gray-400 font-medium">{formatDate(report.createdAt)}</p></div>
           </div>
-          <button onClick={handleDownloadPdf} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-indigo-300 bg-indigo-500/20 rounded-xl hover:bg-indigo-500/30 transition-colors"><Download size={14} /> PDF</button>
+          <div className="flex items-center gap-2">
+            {userProfile?.role === 'doctor' && (
+              <button
+                onClick={() => { setShareEmail(''); setShareMessage(''); setShareSuccess(false); setShareModalOpen(true); }}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-teal-300 bg-teal-500/20 rounded-xl hover:bg-teal-500/30 transition-colors"
+              >
+                <Share2 size={14} /> Share
+              </button>
+            )}
+            <button onClick={handleDownloadPdf} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-indigo-300 bg-indigo-500/20 rounded-xl hover:bg-indigo-500/30 transition-colors"><Download size={14} /> PDF</button>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 pt-6 space-y-4" id="report-print-area">
+      <div className="max-w-lg mx-auto px-4 pt-6 space-y-4">
         {/* Meta */}
         <div className="glass-card p-4 flex items-center justify-between">
           <div className="flex items-center gap-2"><Clock size={12} className="text-gray-500" /><span className="text-xs text-gray-400">{formatDate(report.createdAt)}</span></div>
@@ -124,6 +182,39 @@ export default function ReportDetailPage() {
           {showFhir && <div className="glass-card mt-1 p-0.5 rounded-t-none border-t-0"><div className="fhir-json-viewer"><pre className="text-emerald-300/90 whitespace-pre-wrap break-words">{JSON.stringify(report.fhirBundle, null, 2)}</pre></div></div>}
         </div>}
       </div>
+
+      {/* Hidden printable report for PDF */}
+      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+        <PrintablePDFReport report={report} />
+      </div>
+
+      {/* Share Modal */}
+      {shareModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="glass-card p-6 w-full max-w-sm space-y-5 animate-fade-in-up border border-white/10">
+            <h3 className="text-lg font-bold text-white text-center">Share Report</h3>
+            <p className="text-xs text-gray-400 text-center">Send this report to another doctor</p>
+            {shareSuccess ? (
+              <div className="flex flex-col items-center gap-3 py-4">
+                <Send size={28} className="text-teal-400" />
+                <p className="text-teal-300 font-medium text-sm">Report shared successfully!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <input type="email" placeholder="Recipient doctor's email *" value={shareEmail} onChange={(e) => setShareEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-teal-500/50 transition-colors" />
+                <textarea placeholder="Optional message..." value={shareMessage} onChange={(e) => setShareMessage(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-teal-500/50 transition-colors min-h-[80px] resize-none" />
+                <div className="flex gap-2">
+                  <button onClick={() => setShareModalOpen(false)} className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-400 bg-white/5 hover:bg-white/10 transition-colors">Cancel</button>
+                  <button onClick={handleShare} disabled={!shareEmail.trim() || shareLoading} className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-teal-500 to-emerald-600 shadow-lg shadow-teal-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
+                    {shareLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                    {shareLoading ? 'Sharing...' : 'Share'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
