@@ -8,8 +8,7 @@ import {
   ChevronDown, ChevronUp, Download, Share2, Send
 } from 'lucide-react';
 import PrintablePDFReport from './PrintablePDFReport';
-// @ts-ignore
-import html2pdf from 'html2pdf.js';
+import { downloadPdf } from '../utils/pdfDownload';
 
 export default function ReportDetailPage() {
   const { id } = useParams();
@@ -61,15 +60,8 @@ export default function ReportDetailPage() {
   };
 
   const handleDownloadPdf = () => {
-    const el = document.getElementById('pdf-print-area');
-    if (!el) return;
-    html2pdf().set({
-      margin: 0,
-      filename: `clinical_report_${report?.patientName?.replace(/\s+/g, '_') || id}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    }).from(el).save();
+    const filename = `clinical_report_${report?.patientName?.replace(/\s+/g, '_') || id}.pdf`;
+    downloadPdf('pdf-print-area', filename);
   };
 
   const handleShare = async () => {
