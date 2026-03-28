@@ -20,22 +20,13 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS: read allowed origins from env, fallback to allow-all for local dev
-_raw_origins = os.getenv("ALLOWED_ORIGINS", "")
-if not _raw_origins or _raw_origins.strip() == "*":
-    # Allow all origins (no credentials restriction)
-    allowed_origins = ["*"]
-    _allow_creds = False
-else:
-    allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
-    _allow_creds = True
-
-logger.info(f"CORS allowed_origins={allowed_origins}, credentials={_allow_creds}")
-
+# CORS: Allow all origins since we use Bearer token auth (not cookies).
+# Mobile apps (Capacitor) send origin "https://localhost" which isn't predictable,
+# and Bearer tokens already validate the user regardless of origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=_allow_creds,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

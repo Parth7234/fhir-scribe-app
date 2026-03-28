@@ -5,12 +5,13 @@ const config: CapacitorConfig = {
   appName: 'AI Ambient Scribe',
   webDir: 'dist',
   server: {
-    // Use http scheme to avoid mixed-content blocks when calling local HTTP backend
-    androidScheme: 'http',
+    androidScheme: 'https',
     // Allow the WebView to communicate with Supabase and your backend
     allowNavigation: [
       'kjfsukbvgfrsysckdksd.supabase.co',
       '*.supabase.co',
+      'fhir-scribe-app.onrender.com',
+      '*.onrender.com',
       'localhost',
       '10.0.2.2',
     ],

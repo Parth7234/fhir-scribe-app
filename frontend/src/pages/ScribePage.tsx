@@ -15,6 +15,9 @@ import {
 import PrintablePDFReport from './PrintablePDFReport';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -253,16 +256,53 @@ export default function ScribePage() {
     catch { console.error('Validation failed'); } finally { setIsValidating(false); }
   }, []);
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     const el = document.getElementById('pdf-print-area');
     if (!el) return;
-    html2pdf().set({
+
+    const filename = `prescription_${patientName.replace(/\s+/g, '_') || 'ai_scribe'}.pdf`;
+    const pdfOptions = {
       margin: 0,
-      filename: `prescription_${patientName.replace(/\s+/g, '_') || 'ai_scribe'}.pdf`,
+      filename,
       image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
-    }).from(el).save();
+    };
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        // On native mobile: generate PDF as base64, save to filesystem, then share
+        const pdfBlob: Blob = await html2pdf().set(pdfOptions).from(el).outputPdf('blob');
+        const reader = new FileReader();
+        const base64Data = await new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]); // strip data:... prefix
+          };
+          reader.readAsDataURL(pdfBlob);
+        });
+
+        const savedFile = await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: Directory.Cache,
+        });
+
+        await Share.share({
+          title: 'Clinical Report',
+          text: 'AI Ambient Scribe - Clinical Report',
+          url: savedFile.uri,
+          dialogTitle: 'Save or Share Report',
+        });
+      } catch (err) {
+        console.error('Mobile PDF error:', err);
+        // Fallback to browser download
+        html2pdf().set(pdfOptions).from(el).save();
+      }
+    } else {
+      // On web: use standard browser download
+      html2pdf().set(pdfOptions).from(el).save();
+    }
   };
 
   const handleSaveReport = async () => {
