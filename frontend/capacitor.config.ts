@@ -5,10 +5,15 @@ const config: CapacitorConfig = {
   appName: 'AI Ambient Scribe',
   webDir: 'dist',
   server: {
-    // For production: the app will use the built web files bundled inside the APK.
-    // For development with live reload, uncomment the line below and set your local IP:
-    // url: 'http://192.168.x.x:5173',
-    androidScheme: 'https',
+    // Use http scheme to avoid mixed-content blocks when calling local HTTP backend
+    androidScheme: 'http',
+    // Allow the WebView to communicate with Supabase and your backend
+    allowNavigation: [
+      'kjfsukbvgfrsysckdksd.supabase.co',
+      '*.supabase.co',
+      'localhost',
+      '10.0.2.2',
+    ],
   },
   plugins: {
     SplashScreen: {
@@ -16,6 +21,9 @@ const config: CapacitorConfig = {
       backgroundColor: '#0a0a1a',
       showSpinner: false,
     },
+  },
+  android: {
+    allowMixedContent: true,
   },
 };
 
