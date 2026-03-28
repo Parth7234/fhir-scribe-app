@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { useLanguage } from '../contexts/LanguageContext';
+import { supabase } from '../supabase';
+import LanguageToggle from '../components/LanguageToggle';
 import {
   Heart, LogOut, FileText, Clock, ChevronRight, Loader2,
   AlertCircle, Stethoscope, Pill, Activity
@@ -14,11 +15,12 @@ interface Report {
   chiefComplaint: string;
   diagnoses: string[];
   medications: string[];
-  createdAt: any;
+  createdAt: string;
 }
 
 export default function PatientDashboard() {
   const { user, userProfile, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,27 +32,22 @@ export default function PatientDashboard() {
   const fetchReports = async () => {
     if (!user) return;
     try {
-      const q = query(
-        collection(db, 'reports'),
-        where('patientEmail', '==', user.email)
-      );
-      const snapshot = await getDocs(q);
-      const fetchedReports: Report[] = [];
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .eq('patient_email', user.email)
+        .order('created_at', { ascending: false });
 
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        fetchedReports.push({
-          id: doc.id,
-          doctorName: data.doctorName,
-          chiefComplaint: data.structuredNotes?.chief_complaint || 'General consultation',
-          diagnoses: (data.structuredNotes?.diagnoses || []).map((d: any) => d.name).slice(0, 3),
-          medications: (data.structuredNotes?.medications || []).map((m: any) => m.name).slice(0, 3),
-          createdAt: data.createdAt?.toDate?.() || new Date(),
-        });
-      });
+      if (error) throw error;
 
-      // Sort client-side (newest first)
-      fetchedReports.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      const fetchedReports: Report[] = (data || []).map((row: any) => ({
+        id: row.id,
+        doctorName: row.doctor_name,
+        chiefComplaint: row.structured_notes?.chief_complaint || 'General consultation',
+        diagnoses: (row.structured_notes?.diagnoses || []).map((d: any) => d.name).slice(0, 3),
+        medications: (row.structured_notes?.medications || []).map((m: any) => m.name).slice(0, 3),
+        createdAt: row.created_at,
+      }));
 
       setReports(fetchedReports);
     } catch (err) {
@@ -65,10 +62,10 @@ export default function PatientDashboard() {
     navigate('/login');
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: string) => {
     return new Intl.DateTimeFormat('en-IN', {
       day: 'numeric', month: 'short', year: 'numeric'
-    }).format(date);
+    }).format(new Date(date));
   };
 
   return (
@@ -82,14 +79,15 @@ export default function PatientDashboard() {
             </div>
             <div>
               <h1 className="text-sm font-bold text-white tracking-tight">{userProfile?.displayName}</h1>
-              <p className="text-[10px] text-gray-400 font-medium">My Health Records</p>
+              <p className="text-[10px] text-gray-400 font-medium">{t('myHealthRecords')}</p>
             </div>
           </div>
+          <LanguageToggle />
           <button
             id="patient-logout-btn"
             onClick={handleLogout}
             className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
-            title="Logout"
+            title={t('logout')}
           >
             <LogOut size={16} />
           </button>
@@ -101,7 +99,7 @@ export default function PatientDashboard() {
         <div className="glass-card p-4">
           <div className="flex items-center gap-2 mb-1">
             <FileText size={14} className="text-rose-400" />
-            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total Records</span>
+            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('totalRecords')}</span>
           </div>
           <p className="text-2xl font-bold text-white tabular-nums">{reports.length}</p>
         </div>
@@ -109,19 +107,19 @@ export default function PatientDashboard() {
         {/* Reports */}
         <div>
           <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">
-            Your Medical Records
+            {t('yourMedicalRecords')}
           </h2>
 
           {loading ? (
             <div className="glass-card p-8 flex flex-col items-center justify-center gap-3">
               <Loader2 size={24} className="animate-spin text-rose-400" />
-              <p className="text-sm text-gray-400">Loading your records...</p>
+              <p className="text-sm text-gray-400">{t('loadingRecords')}</p>
             </div>
           ) : reports.length === 0 ? (
             <div className="glass-card p-8 text-center space-y-3">
               <AlertCircle size={24} className="text-gray-600 mx-auto" />
-              <p className="text-gray-400 text-sm">No medical records found.</p>
-              <p className="text-gray-600 text-xs">Your consultation records will appear here after your doctor creates them.</p>
+              <p className="text-gray-400 text-sm">{t('noMedicalRecords')}</p>
+              <p className="text-gray-600 text-xs">{t('recordsAppearHere')}</p>
             </div>
           ) : (
             <div className="space-y-3">

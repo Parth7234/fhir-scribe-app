@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { usePwaInstall } from '../hooks/usePwaInstall';
-import { Stethoscope, Heart, Mail, Lock, Loader2, AlertCircle, Download, Smartphone } from 'lucide-react';
+import LanguageToggle from '../components/LanguageToggle';
+import { Stethoscope, Mail, Lock, Loader2, AlertCircle, Download, Smartphone, Building2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'doctor' | 'patient'>('doctor');
@@ -11,6 +13,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { canInstall, install } = usePwaInstall();
 
@@ -22,12 +25,13 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err: any) {
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('Invalid email or password.');
-      } else if (err.code === 'auth/too-many-requests') {
-        setError('Too many failed attempts. Please try again later.');
+      const msg = err.message || '';
+      if (msg.includes('Invalid login credentials')) {
+        setError(t('invalidCredentials'));
+      } else if (msg.includes('Email not confirmed')) {
+        setError(t('confirmEmail'));
       } else {
-        setError('Login failed. Please try again.');
+        setError(msg || t('loginFailed'));
       }
     } finally {
       setLoading(false);
@@ -43,9 +47,10 @@ export default function LoginPage() {
             <Stethoscope size={32} className="text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">AI Ambient Scribe</h1>
-            <p className="text-gray-400 text-sm mt-1">Sign in to access your clinical dashboard</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">{t('loginTitle')}</h1>
+            <p className="text-gray-400 text-sm mt-1">{t('loginSubtitle')}</p>
           </div>
+          <LanguageToggle />
         </div>
 
         {/* PWA Install Banner */}
@@ -59,8 +64,8 @@ export default function LoginPage() {
               <Smartphone size={18} className="text-white" />
             </div>
             <div className="flex-1 text-left">
-              <p className="text-sm font-bold text-white">Install App</p>
-              <p className="text-[11px] text-gray-400">Add to home screen for the best experience</p>
+              <p className="text-sm font-bold text-white">{t('installApp')}</p>
+              <p className="text-[11px] text-gray-400">{t('installAppDesc')}</p>
             </div>
             <Download size={18} className="text-indigo-400 group-hover:translate-y-0.5 transition-transform" />
           </button>
@@ -77,25 +82,25 @@ export default function LoginPage() {
             }`}
           >
             <Stethoscope size={16} />
-            Doctor
+            {t('doctor')}
           </button>
           <button
             onClick={() => { setActiveTab('patient'); setError(''); }}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${
               activeTab === 'patient'
-                ? 'bg-gradient-to-r from-rose-500/20 to-pink-500/20 text-rose-300 border border-rose-500/30 shadow-lg shadow-rose-500/10'
+                ? 'bg-gradient-to-r from-teal-500/20 to-cyan-500/20 text-teal-300 border border-teal-500/30 shadow-lg shadow-teal-500/10'
                 : 'text-gray-500 hover:text-gray-300'
             }`}
           >
-            <Heart size={16} />
-            Patient
+            <Building2 size={16} />
+            {t('patientDatabase')}
           </button>
         </div>
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">
           <h2 className="text-lg font-bold text-white text-center">
-            {activeTab === 'doctor' ? '🩺 Doctor Sign In' : '❤️ Patient Sign In'}
+            {activeTab === 'doctor' ? t('doctorSignIn') : t('patientSignIn')}
           </h2>
 
           {error && (
@@ -111,7 +116,7 @@ export default function LoginPage() {
               <input
                 id="email-input"
                 type="email"
-                placeholder="Email address"
+                placeholder={activeTab === 'patient' ? t('patientEmailLabel') : t('emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -124,7 +129,7 @@ export default function LoginPage() {
               <input
                 id="password-input"
                 type="password"
-                placeholder="Password"
+                placeholder={activeTab === 'patient' ? t('hospitalPassword') : t('passwordPlaceholder')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -140,29 +145,29 @@ export default function LoginPage() {
             className={`w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
               activeTab === 'doctor'
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-indigo-500/30'
-                : 'bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-rose-500/30'
+                : 'bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 shadow-teal-500/30'
             } ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {loading ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                Signing in...
+                {activeTab === 'patient' ? t('accessingRecords') : t('signingIn')}
               </>
             ) : (
-              `Sign In as ${activeTab === 'doctor' ? 'Doctor' : 'Patient'}`
+              activeTab === 'doctor' ? t('signInAsDoctor') : t('signInAsPatient')
             )}
           </button>
 
           <p className="text-center text-sm text-gray-500">
-            Don't have an account?{' '}
+            {t('noAccount')}{' '}
             <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
-              Register here
+              {t('registerHere')}
             </Link>
           </p>
         </form>
 
         <p className="text-center text-[10px] text-gray-600">
-          Powered by Gemini AI • FHIR R4 Compliant • Built for Indian Healthcare
+          {t('footer')}
         </p>
       </div>
     </div>
