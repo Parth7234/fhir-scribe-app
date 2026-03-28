@@ -27,10 +27,15 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for everything, fallback to cache for static assets
+// Fetch: network-first for navigation, cache-first for same-origin GET static assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  // Only handle same-origin requests; let cross-origin requests pass through
+  if (url.origin !== self.location.origin) {
+    return;
+  }
 
   // Always go to network for API calls and navigation (SPA routes)
   if (url.pathname.startsWith('/api') || request.mode === 'navigate') {
@@ -43,6 +48,11 @@ self.addEventListener('fetch', (event) => {
         return new Response('Offline', { status: 503 });
       })
     );
+    return;
+  }
+
+  // Cache API only supports GET — skip POST, PUT, DELETE, etc.
+  if (request.method !== 'GET') {
     return;
   }
 

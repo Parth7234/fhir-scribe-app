@@ -1,14 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  type User,
-  updateProfile,
-} from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { supabase } from '../supabase';
+import type { User } from '@supabase/supabase-js';
 import axios from 'axios';
 
 export type UserRole = 'doctor' | 'patient';
@@ -18,7 +10,7 @@ export interface UserProfile {
   email: string;
   displayName: string;
   role: UserRole;
-  createdAt?: any;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -40,19 +32,85 @@ export function useAuth() {
   return context;
 }
 
+async function fetchProfile(userId: string): Promise<UserProfile | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error || !data) return null;
+
+  return {
+    uid: data.id,
+    email: data.email,
+    displayName: data.display_name,
+    role: data.role as UserRole,
+    createdAt: data.created_at,
+  };
+}
+
+async function createProfileFromPending(user: User): Promise<UserProfile | null> {
+  // Try localStorage first (from registration with email confirmation)
+  const pendingJson = localStorage.getItem('pending_profile');
+  let profileData: any = null;
+
+  if (pendingJson) {
+    try {
+      profileData = JSON.parse(pendingJson);
+    } catch {}
+  }
+
+  // Fallback to user_metadata from Supabase Auth
+  if (!profileData) {
+    const meta = user.user_metadata;
+    if (meta?.display_name && meta?.role) {
+      profileData = {
+        id: user.id,
+        email: user.email,
+        display_name: meta.display_name,
+        role: meta.role,
+      };
+    }
+  }
+
+  if (!profileData) return null;
+
+  const { error } = await supabase.from('profiles').insert({
+    id: user.id,
+    email: profileData.email || user.email,
+    display_name: profileData.display_name,
+    role: profileData.role,
+  });
+
+  if (error) {
+    console.error('Failed to create profile from pending:', error);
+    return null;
+  }
+
+  localStorage.removeItem('pending_profile');
+
+  return {
+    uid: user.id,
+    email: profileData.email || user.email || '',
+    displayName: profileData.display_name,
+    role: profileData.role as UserRole,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Attach Firebase ID token to all Axios requests
+  // Attach Supabase access token to all Axios requests
   useEffect(() => {
     const interceptor = axios.interceptors.request.use(async (config) => {
-      if (user) {
-        const token = await user.getIdToken();
-        if (token && config.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token && config.headers) {
+        config.headers.Authorization = `Bearer ${session.access_token}`;
+      } else {
+        console.warn('[AuthContext] No active session — API request will be unauthenticated:', config.url);
       }
       return config;
     });
@@ -60,60 +118,102 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       axios.interceptors.request.eject(interceptor);
     };
-  }, [user]);
+  }, []);
 
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        // Fetch user profile from Firestore
-        try {
-          const profileDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (profileDoc.exists()) {
-            setUserProfile(profileDoc.data() as UserProfile);
-          } else {
-            setUserProfile(null);
-          }
-        } catch (err) {
-          console.error('Failed to fetch user profile:', err);
-          setUserProfile(null);
+    // Get initial session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        let profile = await fetchProfile(currentUser.id);
+        // If no profile exists, try creating from pending data or user_metadata
+        if (!profile) {
+          profile = await createProfileFromPending(currentUser);
         }
+        setUserProfile(profile);
       } else {
         setUserProfile(null);
       }
       setLoading(false);
     });
 
-    return unsubscribe;
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          let profile = await fetchProfile(currentUser.id);
+          // If no profile exists, try creating from pending data or user_metadata
+          if (!profile) {
+            profile = await createProfileFromPending(currentUser);
+          }
+          setUserProfile(profile);
+        } else {
+          setUserProfile(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   };
 
   const register = async (email: string, password: string, displayName: string, role: UserRole) => {
-    const credential = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(credential.user, { displayName });
-
-    // Create Firestore user profile
-    const profile: UserProfile = {
-      uid: credential.user.uid,
+    const { data, error } = await supabase.auth.signUp({
       email,
-      displayName,
-      role,
-    };
-
-    await setDoc(doc(db, 'users', credential.user.uid), {
-      ...profile,
-      createdAt: serverTimestamp(),
+      password,
+      options: { data: { display_name: displayName, role } },
     });
+    if (error) throw error;
+    if (!data.user) throw new Error('Registration failed — no user returned');
 
-    setUserProfile(profile);
+    // If Supabase has email confirmation disabled, we get a session immediately
+    // and can insert the profile. If email confirmation IS enabled, session is null.
+    if (data.session) {
+      // User is authenticated — create profile row
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        email,
+        display_name: displayName,
+        role,
+      });
+      if (profileError) {
+        console.error('Failed to create profile:', profileError);
+        throw new Error('Failed to create user profile');
+      }
+
+      // Immediately set the profile so the UI can redirect
+      setUserProfile({
+        uid: data.user.id,
+        email,
+        displayName,
+        role,
+      });
+    } else {
+      // Email confirmation is required — profile will be created on first login
+      // Store pending profile data so we can create it after confirmation
+      localStorage.setItem('pending_profile', JSON.stringify({
+        id: data.user.id,
+        email,
+        display_name: displayName,
+        role,
+      }));
+      throw new Error('Please check your email to confirm your account before signing in.');
+    }
   };
 
   const logout = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
     setUser(null);
     setUserProfile(null);
   };

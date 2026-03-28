@@ -35,6 +35,12 @@ app.add_middleware(
 @app.middleware("http")
 async def log_requests(request, call_next):
     start = time.time()
+    auth_header = request.headers.get("authorization", "")
+    has_auth = "YES" if auth_header else "NO"
+    if auth_header:
+        logger.info(f"[MIDDLEWARE] {request.method} {request.url.path} — Auth header present (Bearer {auth_header[7:37]}...)")
+    else:
+        logger.warning(f"[MIDDLEWARE] {request.method} {request.url.path} — NO Authorization header!")
     response = await call_next(request)
     duration_ms = int((time.time() - start) * 1000)
     logger.info(f"{request.method} {request.url.path} → {response.status_code} ({duration_ms}ms)")

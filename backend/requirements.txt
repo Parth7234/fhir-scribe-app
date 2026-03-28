@@ -3,7 +3,7 @@ uvicorn
 python-multipart
 pydantic
 python-dotenv
-google-generativeai
-firebase-admin
+google-genai
+pyjwt[crypto]
 httpx
 fhir.resources

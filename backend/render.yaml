@@ -2,10 +2,17 @@ services:
   - type: web
     name: ai-scribe-backend
     runtime: python
+    rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: GEMINI_API_KEY
         sync: false  # Set this manually in Render dashboard
+      - key: SUPABASE_JWT_SECRET
+        sync: false  # Set this manually in Render dashboard
+      - key: SUPABASE_URL
+        sync: false  # Set this manually in Render dashboard
+      - key: ALLOWED_ORIGINS
+        sync: false  # Set to your Vercel frontend URL
       - key: PYTHON_VERSION
         value: "3.11"
