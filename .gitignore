@@ -24,3 +24,7 @@ temp_*
 # IDE
 .vscode/
 .idea/
+
+# Large raw CSV — only commit the .gz version
+backend/data/medicines.csv
+Extensive_A_Z_medicines_dataset_of_India.csv

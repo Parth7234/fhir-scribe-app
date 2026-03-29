@@ -579,7 +579,15 @@ function ClinicalNotesSection({ structuredNotes, editedNotes, isEditing, setEdit
               </div>))}
             </div>
           ) : (
-            <div className="space-y-2">{editedNotes.medications.map((m:any,i:number) => <div key={i} className="bg-white/[0.02] rounded-xl p-3 border border-white/5"><p className="text-sm text-white font-semibold">{m.name}</p><div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">{m.dosage && <span className="text-[11px] text-gray-400">{m.dosage}</span>}{m.frequency && <span className="text-[11px] text-emerald-400/70">• {m.frequency}</span>}{m.duration && <span className="text-[11px] text-purple-400/70">• {m.duration}</span>}{m.route && <span className="text-[11px] text-cyan-400/70">• {m.route}</span>}</div></div>)}</div>
+            <div className="space-y-2">{editedNotes.medications.map((m:any,i:number) => <div key={i} className="bg-white/[0.02] rounded-xl p-3 border border-white/5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-white font-semibold">{m.matched_name || m.name}</p>
+                {m.therapeutic_class && <span className="metric-badge bg-emerald-500/10 text-emerald-300 text-[9px] border border-emerald-500/20">{m.therapeutic_class}</span>}
+              </div>
+              {m.composition && <p className="text-[10px] text-indigo-300/70 mt-1">💊 {m.composition}</p>}
+              {m.manufacturer && <p className="text-[10px] text-gray-500 mt-0.5">🏭 {m.manufacturer}</p>}
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">{m.dosage && <span className="text-[11px] text-gray-400">{m.dosage}</span>}{m.frequency && <span className="text-[11px] text-emerald-400/70">• {m.frequency}</span>}{m.duration && <span className="text-[11px] text-purple-400/70">• {m.duration}</span>}{m.route && <span className="text-[11px] text-cyan-400/70">• {m.route}</span>}</div>
+            </div>)}</div>
           )}
         </div>}
 

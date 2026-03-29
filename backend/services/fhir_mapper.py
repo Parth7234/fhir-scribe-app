@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from .auth import verify_token
+from .medicine_lookup import enrich_medications, lookup_medicine
 from pydantic import BaseModel
 from google import genai
 from google.genai import types
@@ -125,6 +126,33 @@ async def process_fhir(input_data: TranscriptInput, token: dict = Depends(verify
 
         structured_notes = json.loads(notes_content.strip())
         logger.info(f"Structured notes generated in {notes_time_ms}ms")
+
+        # --- Enrich medications with Indian medicine database ---
+        if structured_notes.get("medications"):
+            structured_notes["medications"] = enrich_medications(structured_notes["medications"])
+            logger.info(f"Enriched {len(structured_notes['medications'])} medications from Indian medicine DB")
+
+        # Enrich FHIR MedicationRequest resources too
+        for entry in fhir_bundle.get("entry", []):
+            res = entry.get("resource", {})
+            if res.get("resourceType") == "MedicationRequest":
+                med_name = (
+                    res.get("medicationCodeableConcept", {})
+                    .get("text", "")
+                )
+                if med_name:
+                    match = lookup_medicine(med_name)
+                    if match:
+                        # Add composition as a note
+                        if match.get("composition"):
+                            res.setdefault("note", []).append(
+                                {"text": f"Composition: {match['composition']}"}
+                            )
+                        # Add manufacturer as extension
+                        if match.get("manufacturer"):
+                            res.setdefault("note", []).append(
+                                {"text": f"Mfr: {match['manufacturer']}"}
+                            )
 
         total_time_ms = fhir_time_ms + notes_time_ms
 
