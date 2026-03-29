@@ -10,7 +10,7 @@ import {
   Pill, ChevronDown, ChevronUp, Clock, Zap, Languages,
   AlertCircle, Heart, Thermometer, ClipboardList, RefreshCw,
   CheckCircle2, XCircle, Shield, Edit3, Save, Download,
-  ArrowLeft, UserPlus, Plus, Trash2
+  ArrowLeft, UserPlus, Plus, Trash2, Calendar, User, Mail
 } from 'lucide-react';
 import PrintablePDFReport from './PrintablePDFReport';
 import { downloadPdf } from '../utils/pdfDownload';
@@ -80,6 +80,9 @@ export default function ScribePage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [patientName, setPatientName] = useState('');
   const [patientEmail, setPatientEmail] = useState('');
+  const [patientGender, setPatientGender] = useState('');
+  const [patientDob, setPatientDob] = useState('');
+  const [showIntakeForm, setShowIntakeForm] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -228,15 +231,41 @@ export default function ScribePage() {
     } catch { setError(t('failedTranscribe')); } finally { setIsTranscribing(false); }
   };
 
+  // Inject patient intake info into the FHIR Patient resource
+  const injectPatientInfo = (bundle: any) => {
+    if (!bundle?.entry) return bundle;
+    const patientEntry = bundle.entry.find((e: any) => e.resource?.resourceType === 'Patient');
+    if (patientEntry) {
+      const p = patientEntry.resource;
+      if (patientName.trim()) {
+        p.name = [{ use: 'official', text: patientName.trim() }];
+      }
+      if (patientGender) {
+        p.gender = patientGender;
+      }
+      if (patientDob) {
+        p.birthDate = patientDob;
+      }
+      if (patientEmail.trim()) {
+        p.telecom = [
+          ...(p.telecom || []).filter((t: any) => t.system !== 'email'),
+          { system: 'email', value: patientEmail.trim() }
+        ];
+      }
+    }
+    return bundle;
+  };
+
   const handleFhirProcessing = async (text: string, isDemo = false) => {
     setIsProcessingFhir(true);
     if (isDemo) { setTranscript(text); setTranscriptionTimeMs(150); }
     try {
       const r = await axios.post(`${API_BASE_URL}/fhir/`, { transcript: text });
-      setFhirData(r.data.fhir_bundle); setStructuredNotes(r.data.structured_notes);
+      const enrichedBundle = injectPatientInfo(r.data.fhir_bundle);
+      setFhirData(enrichedBundle); setStructuredNotes(r.data.structured_notes);
       setEditedNotes(r.data.structured_notes); setIsEditing(false);
       setFhirTimeMs(r.data.total_processing_time_ms || 0);
-      if (r.data.fhir_bundle) handleValidation(r.data.fhir_bundle);
+      if (enrichedBundle) handleValidation(enrichedBundle);
     } catch (err: any) {
       if (err?.response?.status === 401) {
         setError(t('sessionExpired'));
@@ -308,6 +337,51 @@ export default function ScribePage() {
       </div>
 
       <div className="max-w-lg mx-auto px-4 pt-6 space-y-5">
+        {/* Patient Intake Form */}
+        {showIntakeForm && (
+          <div className="glass-card p-5 space-y-4 animate-fade-in-up">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center border border-emerald-500/20">
+                  <UserPlus size={16} className="text-emerald-400" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-white">Patient Information</h2>
+                  <p className="text-[10px] text-gray-500">Fill before consultation (optional)</p>
+                </div>
+              </div>
+              <button onClick={() => setShowIntakeForm(false)} className="text-[10px] text-gray-500 hover:text-gray-300 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors">Skip →</button>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="relative">
+                <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input type="text" placeholder="Patient Name" value={patientName} onChange={(e) => setPatientName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-emerald-500/50 transition-colors" />
+              </div>
+              <div className="relative">
+                <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input type="email" placeholder="Email (optional)" value={patientEmail} onChange={(e) => setPatientEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-emerald-500/50 transition-colors" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <select value={patientGender} onChange={(e) => setPatientGender(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none focus:border-emerald-500/50 transition-colors appearance-none">
+                  <option value="" className="bg-gray-900">Gender</option>
+                  <option value="male" className="bg-gray-900">Male</option>
+                  <option value="female" className="bg-gray-900">Female</option>
+                  <option value="other" className="bg-gray-900">Other</option>
+                </select>
+                <div className="relative">
+                  <Calendar size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                  <input type="date" placeholder="Date of Birth" value={patientDob} onChange={(e) => setPatientDob(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-300 outline-none focus:border-emerald-500/50 transition-colors" />
+                </div>
+              </div>
+            </div>
+            {patientName.trim() && (
+              <button onClick={() => setShowIntakeForm(false)} className="w-full py-2.5 rounded-xl text-xs font-bold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors flex items-center justify-center gap-2">
+                <CheckCircle2 size={14} /> Continue to Consultation
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Recording */}
         <div className="glass-card p-8 flex flex-col items-center space-y-5">
           <button id="record-button" onClick={isRecording ? stopRecording : startRecording}
@@ -359,7 +433,7 @@ export default function ScribePage() {
         </div>
       )}
 
-      {showSaveModal && <SaveModal patientName={patientName} setPatientName={setPatientName} patientEmail={patientEmail} setPatientEmail={setPatientEmail} isSaving={isSaving} onSave={handleSaveReport} onClose={() => setShowSaveModal(false)} />}
+      {showSaveModal && <SaveModal patientName={patientName} setPatientName={setPatientName} patientEmail={patientEmail} setPatientEmail={setPatientEmail} isSaving={isSaving} onSave={handleSaveReport} onClose={() => setShowSaveModal(false)} hasIntakeName={!!patientName.trim()} />}
     </div>
   );
 }
@@ -604,16 +678,26 @@ function SpeedMetrics({ transcriptionTimeMs, fhirTimeMs, totalTimeMs }: any) {
   );
 }
 
-function SaveModal({ patientName, setPatientName, patientEmail, setPatientEmail, isSaving, onSave, onClose }: any) {
+function SaveModal({ patientName, setPatientName, patientEmail, setPatientEmail, isSaving, onSave, onClose, hasIntakeName }: any) {
   const { t } = useLanguage();
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <div className="glass-card p-6 w-full max-w-sm space-y-5 animate-fade-in-up border border-white/10">
         <h3 className="text-lg font-bold text-white text-center">{t('saveReport')}</h3>
-        <p className="text-xs text-gray-400 text-center">{t('linkConsultation')}</p>
+        <p className="text-xs text-gray-400 text-center">{hasIntakeName ? 'Confirm and save this consultation.' : t('linkConsultation')}</p>
         <div className="space-y-3">
-          <input type="text" placeholder={t('patientNameRequired')} value={patientName} onChange={(e) => setPatientName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-purple-500/50 transition-colors" id="patient-name-input" />
-          <input type="email" placeholder={t('patientEmailOptional')} value={patientEmail} onChange={(e) => setPatientEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-purple-500/50 transition-colors" id="patient-email-input" />
+          {!hasIntakeName && (
+            <>
+              <input type="text" placeholder={t('patientNameRequired')} value={patientName} onChange={(e) => setPatientName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-purple-500/50 transition-colors" id="patient-name-input" />
+              <input type="email" placeholder={t('patientEmailOptional')} value={patientEmail} onChange={(e) => setPatientEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-purple-500/50 transition-colors" id="patient-email-input" />
+            </>
+          )}
+          {hasIntakeName && (
+            <div className="bg-white/[0.03] rounded-xl p-4 border border-white/5 space-y-2">
+              <div className="flex justify-between"><span className="text-xs text-gray-500">Patient</span><span className="text-sm text-white font-medium">{patientName}</span></div>
+              {patientEmail && <div className="flex justify-between"><span className="text-xs text-gray-500">Email</span><span className="text-sm text-gray-300">{patientEmail}</span></div>}
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
           <button onClick={onClose} className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-400 bg-white/5 hover:bg-white/10 transition-colors">{t('cancel')}</button>
