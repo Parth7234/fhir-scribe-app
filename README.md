@@ -5,22 +5,8 @@
 
 A **production-deployed**, mobile-first AI-powered clinical documentation tool that converts doctor-patient conversations into structured, **FHIR R4-compliant clinical data** in real-time. Supports **Hindi, English, and Hinglish** conversations with automatic English-only report generation and a full **Hindi/English UI toggle** — designed for Indian healthcare settings.
 
-🌐 **Live App**: Frontend on [Vercel](https://vercel.com) · Backend on [Render](https://render.com)  
-📱 **Android APK**: Pre-built APK available (`AI-Ambient-Scribe.apk`) — install directly on any Android device
-
----
-
-## Screenshots
-
-<p align="center">
-  <img src="screenshots/login.png" alt="Doctor Login" width="250"/>
-  &nbsp;&nbsp;
-  <img src="screenshots/main.png" alt="Recording & Transcript" width="250"/>
-  &nbsp;&nbsp;
-  <img src="screenshots/clinical_notes.png" alt="Structured Clinical Notes" width="250"/>
-  &nbsp;&nbsp;
-  <img src="screenshots/fhir_bundle.png" alt="FHIR R4 Bundle & Validation" width="250"/>
-</p>
+ **Live App**: Frontend on [Vercel](https://vercel.com) · Backend on [Render](https://render.com)  
+ **Android APK**: Pre-built APK available (`AI-Ambient-Scribe.apk`) — install directly on any Android device
 
 ---
 
@@ -50,69 +36,53 @@ Authentication is handled by **Supabase Auth** with separate Doctor, Patient, an
 
 | Feature | Description |
 |---------|-------------|
-| 🎤 **Hinglish Voice-to-Text** | Real-time transcription with **Doctor/Patient speaker tags** (diarization) using Gemini 2.5 Flash |
-| 🌐 **Multilingual Input** | Hindi, English, and Hinglish (code-mixed) audio with language selector |
-| 🇬🇧 **English-Only Reports** | All clinical output (diagnoses, medications, notes) is auto-translated to English regardless of conversation language |
-| 🇮🇳 **Hindi/English UI Toggle** | Full app UI available in Hindi and English with one-click toggle (150+ translated strings) |
-| 📋 **Structured Clinical Notes** | Auto-extracted: Chief Complaint, HPI, Vitals, Diagnoses (ICD-10), Medications (RxNorm), Follow-up, Advice |
-| ✏️ **Fully Editable Reports** | Edit every field inline — including individual medication name, dosage, frequency, duration, route, vitals, and diagnoses |
-| ➕ **Custom Fields** | Doctors can add custom name/value fields to any clinical report during editing |
-| 🔄 **Live FHIR Sync** | Edits to clinical notes automatically rebuild the FHIR R4 JSON bundle in real-time |
-| 📄 **Downloadable PDF** | One-click polished A4 prescription PDF generation using html2pdf.js |
-| 🏥 **FHIR R4 Bundle** | Patient, Encounter, Observation, Condition, MedicationRequest, DocumentReference resources |
-| ✅ **FHIR Validation** | Real-time validation against R4 schema with coding system checks (SNOMED, ICD-10, LOINC, RxNorm) |
-| 💊 **Indian Medicine Database** | 200K+ medicines with fuzzy matching — enriches prescriptions with composition, manufacturer, therapeutic class |
-| ⚡ **Pipeline Speed Metrics** | Transcription + FHIR processing time displayed in real-time |
+|  **Hinglish Voice-to-Text** | Real-time transcription with **Doctor/Patient speaker tags** (diarization) using Gemini 2.5 Flash |
+|  **Multilingual Input** | Hindi, English, and Hinglish (code-mixed) audio with language selector |
+|  **English-Only Reports** | All clinical output (diagnoses, medications, notes) is auto-translated to English regardless of conversation language |
+|  **Hindi/English UI Toggle** | Full app UI available in Hindi and English with one-click toggle (150+ translated strings) |
+|  **Structured Clinical Notes** | Auto-extracted: Chief Complaint, HPI, Vitals, Diagnoses (ICD-10), Medications (RxNorm), Follow-up, Advice |
+|  **Fully Editable Reports** | Edit every field inline — including individual medication name, dosage, frequency, duration, route, vitals, and diagnoses |
+|  **Custom Fields** | Doctors can add custom name/value fields to any clinical report during editing |
+|  **Live FHIR Sync** | Edits to clinical notes automatically rebuild the FHIR R4 JSON bundle in real-time |
+|  **Downloadable PDF** | One-click polished A4 prescription PDF generation using html2pdf.js |
+|  **FHIR R4 Bundle** | Patient, Encounter, Observation, Condition, MedicationRequest, DocumentReference resources |
+|  **FHIR Validation** | Real-time validation against R4 schema with coding system checks (SNOMED, ICD-10, LOINC, RxNorm) |
+|  **Indian Medicine Database** | 200K+ medicines with fuzzy matching — enriches prescriptions with composition, manufacturer, therapeutic class |
+|  **Pipeline Speed Metrics** | Transcription + FHIR processing time displayed in real-time |
 
 ### Admin Dashboard — Analytics & Monitoring
 
 | Feature | Description |
 |---------|-------------|
-| 📈 **Consultation Volume Chart** | Interactive 14-day line chart showing daily consultation volume across the clinic (Recharts) |
-| 💊 **Top Prescribed Generics** | Horizontal bar chart of the 10 most commonly prescribed medications across all doctors |
-| 🤖 **Gemini API Usage Counter** | Real-time estimated API call counter (per report × 3 calls) with daily/weekly breakdown and budget warnings |
-| ⏱️ **Total Time Saved** | Complexity-based calculator scoring each report by vitals, diagnoses, medications, and text length |
-| 🗓️ **Doctor Activity Heatmap** | 4-week × 7-day grid showing which days have the most consultations |
-| 🌍 **Language Distribution** | Donut chart showing Hinglish vs Hindi vs English transcript distribution |
-| 📰 **Recent Activity Feed** | Live-style feed of the last 10 consultations across all doctors with clickable links |
-| 👥 **User Management** | Search, edit roles, and delete user accounts |
-| 🩺 **Top Doctors Leaderboard** | Ranked list of most active doctors by consultation count |
-| 🏷️ **Common Diagnoses** | Tag cloud of the most frequent diagnoses across all reports |
-
-### Time Saved Formula
-
-Each report's time saved is calculated based on its actual clinical complexity:
-
-```
-Base Documentation:          2.0 min   (opening EMR, patient header, saving)
-+ per Vital Sign:            0.3 min   (reading & typing each value + unit)
-+ per Diagnosis:             0.5 min   (writing name + severity)
-  └ with ICD code:          +0.25 min  (looking up & entering code)
-+ per Medication:            0.75 min  (drug + dosage + frequency + duration + route)
-+ HPI text length:          ~0.4 min   per 100 chars
-+ Exam findings length:     ~0.3 min   per 100 chars
-+ Follow-up / Advice:       +0.25 min  each
-+ Custom fields:            +0.2 min   each
-```
+|  **Consultation Volume Chart** | Interactive 14-day line chart showing daily consultation volume across the clinic (Recharts) |
+|  **Top Prescribed Generics** | Horizontal bar chart of the 10 most commonly prescribed medications across all doctors |
+|  **Gemini API Usage Counter** | Real-time estimated API call counter (per report × 3 calls) with daily/weekly breakdown and budget warnings |
+| ⏱ **Total Time Saved** | Complexity-based calculator scoring each report by vitals, diagnoses, medications, and text length |
+|  **Doctor Activity Heatmap** | 4-week × 7-day grid showing which days have the most consultations |
+|  **Language Distribution** | Donut chart showing Hinglish vs Hindi vs English transcript distribution |
+|  **Recent Activity Feed** | Live-style feed of the last 10 consultations across all doctors with clickable links |
+|  **User Management** | Search, edit roles, and delete user accounts |
+|  **Top Doctors Leaderboard** | Ranked list of most active doctors by consultation count |
+|  **Common Diagnoses** | Tag cloud of the most frequent diagnoses across all reports |
 
 ### Authentication & Roles
 
 | Feature | Description |
 |---------|-------------|
-| 🔐 **Supabase Auth** | Role-based auth (Doctor/Patient/Admin) with email verification and JWT-secured API |
-| 🩺 **Doctor Dashboard** | Track patients, view report history, share reports with other doctors, start new consultations |
-| 🏥 **Hospital Patient Database** | Register patients into the hospital database; access records via email + hospital password |
-| 🛡️ **Admin Dashboard** | Full analytics, user management, consultation tracking, patient database overview |
-| 💾 **Report Saving** | Save consultation reports to Supabase, linked to patients by name/email |
+|  **Supabase Auth** | Role-based auth (Doctor/Patient/Admin) with email verification and JWT-secured API |
+|  **Doctor Dashboard** | Track patients, view report history, share reports with other doctors, start new consultations |
+|  **Hospital Patient Database** | Register patients into the hospital database; access records via email + hospital password |
+|  **Admin Dashboard** | Full analytics, user management, consultation tracking, patient database overview |
+|  **Report Saving** | Save consultation reports to Supabase, linked to patients by name/email |
 
 ### Platform & Design
 
 | Feature | Description |
 |---------|-------------|
-| 📱 **Mobile-First PWA** | Glassmorphism dark theme, responsive design, installable on any phone |
-| 📲 **Native Android APK** | Built with Capacitor — installable APK with native device features |
-| 🚀 **Production Deployed** | Frontend on **Vercel**, Backend on **Render** |
-| 🎬 **Demo Scripts** | Built-in demo conversations (Viral Fever Hinglish, Diabetes English, Hypertension Hindi) for instant testing |
+|  **Mobile-First PWA** | Glassmorphism dark theme, responsive design, installable on any phone |
+|  **Native Android APK** | Built with Capacitor — installable APK with native device features |
+|  **Production Deployed** | Frontend on **Vercel**, Backend on **Render** |
+|  **Demo Scripts** | Built-in demo conversations (Viral Fever Hinglish, Diabetes English, Hypertension Hindi) for instant testing |
 
 ---
 
@@ -120,7 +90,7 @@ Base Documentation:          2.0 min   (opening EMR, patient header, saving)
 
 ```mermaid
 graph LR
-    A[📱 Mobile / Android App] -->|Audio WebM| C[FastAPI Backend]
+    A[ Mobile / Android App] -->|Audio WebM| C[FastAPI Backend]
     A -->|Supabase JWT| C
     C --> D[Gemini 2.5 Flash<br>Transcription]
     D --> E[Gemini 2.5 Flash Lite<br>FHIR Mapper]
@@ -133,20 +103,20 @@ graph LR
     A -->|Save Report| H[(Supabase PostgreSQL)]
     H -->|Fetch Records| A
     A -->|Auth| I[Supabase Auth]
-    A -.->|Admin| J[📊 Analytics Dashboard]
+    A -.->|Admin| J[ Analytics Dashboard]
     J -->|Query| H
 ```
 
 ### Pipeline Flow
 
 ```
-🎤 Audio (WebM)
-    → 📝 Hinglish Transcript (verbatim, original language)
-    → 📋 Structured Notes (English only — auto-translated)
-    → 💊 Medicine Enrichment (Indian DB, 200K+ drugs)
-    → 🏥 FHIR R4 Bundle (English, coded with SNOMED/ICD-10/LOINC/RxNorm)
-    → ✅ Validation
-    → 💾 Supabase
+ Audio (WebM)
+    →  Hinglish Transcript (verbatim, original language)
+    →  Structured Notes (English only — auto-translated)
+    →  Medicine Enrichment (Indian DB, 200K+ drugs)
+    →  FHIR R4 Bundle (English, coded with SNOMED/ICD-10/LOINC/RxNorm)
+    →  Validation
+    →  Supabase
            ↕ Doctor Edits ↕           ↕ Auto-Sync ↕
 ```
 
@@ -313,12 +283,12 @@ The APK will be at `frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| `GET` | `/` | ❌ | Service info |
-| `GET` | `/health` | ❌ | Basic health check |
-| `GET` | `/health/detailed` | ❌ | Detailed health (backend + Supabase DB status) |
-| `POST` | `/api/transcribe/?language=hi-en` | 🔐 | Audio → Text transcription (Gemini 2.5 Flash) |
-| `POST` | `/api/fhir/` | 🔐 | Transcript → FHIR Bundle + Structured Notes (English output) |
-| `POST` | `/api/fhir/validate` | 🔐 | Validate a FHIR R4 Bundle |
+| `GET` | `/` |  | Service info |
+| `GET` | `/health` |  | Basic health check |
+| `GET` | `/health/detailed` |  | Detailed health (backend + Supabase DB status) |
+| `POST` | `/api/transcribe/?language=hi-en` |  | Audio → Text transcription (Gemini 2.5 Flash) |
+| `POST` | `/api/fhir/` |  | Transcript → FHIR Bundle + Structured Notes (English output) |
+| `POST` | `/api/fhir/validate` |  | Validate a FHIR R4 Bundle |
 
 All protected endpoints require a valid `Authorization: Bearer <supabase_jwt>` header.
 
@@ -388,15 +358,15 @@ fhir-scribe-app/
 
 | Objective | Implementation | Status |
 |-----------|---------------|--------|
-| Capture conversations in real-time (Hindi + English mix) | MediaRecorder API → Gemini 2.5 Flash transcription with Hinglish prompt & speaker diarization | ✅ |
-| Convert speech into structured clinical notes | Structured Notes extraction (CC, HPI, Vitals, Dx, Rx, Follow-up, Advice) — all fully editable with add/remove. English-only output. | ✅ |
-| Map entities to FHIR resources | Patient, Encounter, Observation, Condition, MedicationRequest with SNOMED/ICD-10/LOINC/RxNorm — auto-synced on edit | ✅ |
-| Demonstrate documentation speed improvement | Complexity-based time savings calculator + real-time pipeline speed metrics | ✅ |
-| Functional Prototype (Mobile App) | Mobile-first PWA on Vercel + native Android APK via Capacitor | ✅ |
-| FHIR Mapping Layer | Full FHIR R4 Bundle generation with auto-validation engine + live edit sync | ✅ |
-| Multilingual Capability | Hindi, English, Hinglish audio + full Hindi/English UI toggle + English-only report output | ✅ |
-| Role-Based Access Control | Doctor + Patient + Admin dashboards with Supabase Auth (JWT) | ✅ |
-| Admin Analytics Dashboard | Consultation volume charts, top prescribed generics, API usage monitoring, time saved calculator, activity heatmap | ✅ |
+| Capture conversations in real-time (Hindi + English mix) | MediaRecorder API → Gemini 2.5 Flash transcription with Hinglish prompt & speaker diarization |  |
+| Convert speech into structured clinical notes | Structured Notes extraction (CC, HPI, Vitals, Dx, Rx, Follow-up, Advice) — all fully editable with add/remove. English-only output. |  |
+| Map entities to FHIR resources | Patient, Encounter, Observation, Condition, MedicationRequest with SNOMED/ICD-10/LOINC/RxNorm — auto-synced on edit |  |
+| Demonstrate documentation speed improvement | Complexity-based time savings calculator + real-time pipeline speed metrics |  |
+| Functional Prototype (Mobile App) | Mobile-first PWA on Vercel + native Android APK via Capacitor |  |
+| FHIR Mapping Layer | Full FHIR R4 Bundle generation with auto-validation engine + live edit sync |  |
+| Multilingual Capability | Hindi, English, Hinglish audio + full Hindi/English UI toggle + English-only report output |  |
+| Role-Based Access Control | Doctor + Patient + Admin dashboards with Supabase Auth (JWT) |  |
+| Admin Analytics Dashboard | Consultation volume charts, top prescribed generics, API usage monitoring, time saved calculator, activity heatmap |  |
 
 ---
 
