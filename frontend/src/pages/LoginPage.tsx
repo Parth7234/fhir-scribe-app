@@ -4,10 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 import LanguageToggle from '../components/LanguageToggle';
-import { Stethoscope, Mail, Lock, Loader2, AlertCircle, Download, Smartphone, Building2 } from 'lucide-react';
+import { Stethoscope, Mail, Lock, Loader2, AlertCircle, Download, Smartphone, Building2, Shield } from 'lucide-react';
 
 export default function LoginPage() {
-  const [activeTab, setActiveTab] = useState<'doctor' | 'patient'>('doctor');
+  const [activeTab, setActiveTab] = useState<'doctor' | 'patient' | 'admin'>('doctor');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -95,12 +95,23 @@ export default function LoginPage() {
             <Building2 size={16} />
             {t('patientDatabase')}
           </button>
+          <button
+            onClick={() => { setActiveTab('admin'); setError(''); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${
+              activeTab === 'admin'
+                ? 'bg-gradient-to-r from-amber-500/20 to-red-500/20 text-amber-300 border border-amber-500/30 shadow-lg shadow-amber-500/10'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <Shield size={16} />
+            Admin
+          </button>
         </div>
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">
           <h2 className="text-lg font-bold text-white text-center">
-            {activeTab === 'doctor' ? t('doctorSignIn') : t('patientSignIn')}
+            {activeTab === 'doctor' ? t('doctorSignIn') : activeTab === 'patient' ? t('patientSignIn') : 'Admin Sign In'}
           </h2>
 
           {error && (
@@ -145,7 +156,9 @@ export default function LoginPage() {
             className={`w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
               activeTab === 'doctor'
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-indigo-500/30'
-                : 'bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 shadow-teal-500/30'
+                : activeTab === 'patient'
+                ? 'bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 shadow-teal-500/30'
+                : 'bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 shadow-amber-500/30'
             } ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {loading ? (
@@ -154,7 +167,7 @@ export default function LoginPage() {
                 {activeTab === 'patient' ? t('accessingRecords') : t('signingIn')}
               </>
             ) : (
-              activeTab === 'doctor' ? t('signInAsDoctor') : t('signInAsPatient')
+              activeTab === 'doctor' ? t('signInAsDoctor') : activeTab === 'patient' ? t('signInAsPatient') : 'Sign In as Admin'
             )}
           </button>
 

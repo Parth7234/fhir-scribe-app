@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import type { User } from '@supabase/supabase-js';
 import axios from 'axios';
 
-export type UserRole = 'doctor' | 'patient';
+export type UserRole = 'doctor' | 'patient' | 'admin';
 
 export interface UserProfile {
   uid: string;
@@ -39,15 +39,19 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
     .eq('id', userId)
     .single();
 
+  console.log('[AUTH DEBUG] fetchProfile:', { userId, data, error });
+
   if (error || !data) return null;
 
-  return {
+  const profile = {
     uid: data.id,
     email: data.email,
     displayName: data.display_name,
     role: data.role as UserRole,
     createdAt: data.created_at,
   };
+  console.log('[AUTH DEBUG] Resolved role:', profile.role);
+  return profile;
 }
 
 async function createProfileFromPending(user: User): Promise<UserProfile | null> {
