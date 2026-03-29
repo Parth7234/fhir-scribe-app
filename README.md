@@ -1,7 +1,6 @@
 # AI Ambient Scribe — Mobile-First FHIR Clinical Notes
 
 > **PS-1**: Mobile-First Ambient AI Scribe with Real-Time FHIR Conversion  
-> **Team Eclipse** — Parth Singla (2401CS18) · Aditya Raj (2401MC56) · Aryan (2401CS48) · Manish Kumar (2401EE08)
 
 A **production-deployed**, mobile-first AI-powered clinical documentation tool that converts doctor-patient conversations into structured, **FHIR R4-compliant clinical data** in real-time. Supports **Hindi, English, and Hinglish** conversations with automatic English-only report generation and a full **Hindi/English UI toggle** — designed for Indian healthcare settings.
 
@@ -380,16 +379,5 @@ fhir-scribe-app/
 
 > **Important**: Set `ALLOWED_ORIGINS` on Render to your Vercel production URL (e.g., `https://your-app.vercel.app`).  
 > Update the Supabase **Site URL** and **Redirect URLs** in Authentication → URL Configuration to your production domain.
-
----
-
-## Team Eclipse
-
-| Member | Roll No |
-|--------|---------|
-| **Parth Singla** | 2401CS18 |
-| **Aditya Raj** | 2401MC56 |
-| **Aryan** | 2401CS48 |
-| **Manish Kumar** | 2401EE08 |
 
 ---
