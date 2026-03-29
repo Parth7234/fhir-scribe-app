@@ -69,3 +69,30 @@ async def root():
 async def health():
     return {"status": "ok"}
 
+
+@app.get("/health/detailed")
+async def health_detailed():
+    import httpx
+
+    backend_status = "ok"
+    database_status = "disconnected"
+
+    supabase_url = os.getenv("SUPABASE_URL", "")
+    if supabase_url:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                # Ping the Supabase REST endpoint
+                resp = await client.get(f"{supabase_url}/rest/v1/", headers={
+                    "apikey": os.getenv("SUPABASE_ANON_KEY", ""),
+                })
+                if resp.status_code < 500:
+                    database_status = "connected"
+        except Exception as e:
+            logger.warning(f"Supabase health check failed: {e}")
+            database_status = "disconnected"
+
+    return {
+        "backend": backend_status,
+        "database": database_status,
+    }
+
