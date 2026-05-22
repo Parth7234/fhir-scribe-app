@@ -64,12 +64,34 @@ async def transcribe_audio(
 
         audio_part = types.Part.from_bytes(data=content, mime_type=mime_type)
 
-        # Generate transcript using Gemini
+        # Generate transcript using Gemini with robust retry and fallback
         start_time = time.time()
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=[prompt, audio_part],
-        )
+        models = ["gemini-2.5-flash", "gemini-3.5-flash"]
+        response = None
+        last_err = None
+        for model in models:
+            for attempt in range(3):
+                try:
+                    logger.info(f"Calling Gemini transcription ({model}), attempt {attempt+1}/3...")
+                    response = client.models.generate_content(
+                        model=model,
+                        contents=[prompt, audio_part],
+                    )
+                    break
+                except Exception as e:
+                    last_err = e
+                    logger.warning(f"Transcription attempt {attempt+1} for model {model} failed: {e}")
+                    if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                        logger.warning(f"Quota exceeded/Rate limited for {model}. Skipping remaining retries.")
+                        break
+                    if attempt < 2:
+                        time.sleep(1)
+            if response:
+                break
+                
+        if not response:
+            raise last_err
+            
         transcription_time_ms = int((time.time() - start_time) * 1000)
 
         logger.info(f"Transcription completed in {transcription_time_ms}ms")

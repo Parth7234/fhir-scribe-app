@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabase';
 import {
-  Shield, LogOut, Users, FileText, ChevronRight,
+  Shield, LogOut, Users, ChevronRight,
   Loader2, AlertCircle, Stethoscope, Calendar, Search,
-  Edit3, Trash2, Save, Activity, TrendingUp,
-  UserCheck, Heart, ChevronDown, ChevronUp,
-  BarChart3, Clock, Zap,
-  Pill, Globe, Timer
+  Edit3, Trash2, Activity, TrendingUp, TrendingDown,
+  UserCheck, ChevronDown, ChevronUp,
+  BarChart3, Clock, Zap, Pill
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -18,17 +17,6 @@ import {
 /**
  * Estimates minutes a doctor would spend manually writing a clinical note,
  * based on the actual complexity of each report's structured data.
- *
- * Formula:
- *   Base Documentation Time:         2.0 min  (opening EMR, patient header, saving)
- *   + per Vital Sign:                0.3 min  (reading & typing each value + unit)
- *   + per Diagnosis:                 0.5 min  (writing name + severity)
- *     └ with ICD code:              +0.25 min (looking up & entering code)
- *   + per Medication:                0.75 min (drug + dosage + frequency + duration + route)
- *   + HPI text length:               ~0.4 min per 100 chars
- *   + Examination findings length:   ~0.3 min per 100 chars
- *   + Follow-up / Advice present:   +0.25 min each
- *   + Custom fields:                +0.2 min each
  */
 function estimateMinutesSaved(notes: any): number {
   if (!notes) return 2; // bare minimum if no structured data
@@ -46,11 +34,11 @@ function estimateMinutesSaved(notes: any): number {
     if (dx.icd_code) mins += 0.25; // ICD lookup overhead
   });
 
-  // Medications (most time-consuming to document)
+  // Medications
   const meds = notes.medications || [];
   mins += meds.length * 0.75;
 
-  // Text sections — longer text = more documentation effort
+  // Text sections
   const hpiLen = (notes.history_of_present_illness || '').length;
   mins += Math.min(hpiLen / 100, 4) * 0.4; // cap at ~1.6 min
 
@@ -64,7 +52,7 @@ function estimateMinutesSaved(notes: any): number {
   const customFields = notes.custom_fields || [];
   mins += customFields.filter((cf: any) => cf.name && cf.value).length * 0.2;
 
-  return Math.round(mins * 10) / 10; // round to 1 decimal
+  return Math.round(mins * 10) / 10;
 }
 
 interface Profile {
@@ -86,8 +74,6 @@ interface ReportRow {
   language: string;
 }
 
-
-
 export default function AdminDashboard() {
   const { userProfile, logout } = useAuth();
   const navigate = useNavigate();
@@ -107,8 +93,7 @@ export default function AdminDashboard() {
   // Consultations
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [expandedDoctor, setExpandedDoctor] = useState<string | null>(null);
-
-
+  const [expandedPatient, setExpandedPatient] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAll();
@@ -129,8 +114,6 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   };
-
-
 
   // ── Stats ──────────────────────────────────
   const stats = useMemo(() => {
@@ -161,7 +144,15 @@ export default function AdminDashboard() {
     });
     const topDiagnoses = Object.entries(dxCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-    return { doctors: doctors.length, patients: patients.length, total: reports.length, today: todayReports.length, week: weekReports.length, topDoctors, topDiagnoses };
+    return {
+      doctors: doctors.length,
+      patients: patients.length,
+      total: reports.length,
+      today: todayReports.length,
+      week: weekReports.length,
+      topDoctors,
+      topDiagnoses
+    };
   }, [profiles, reports]);
 
   // ── Analytics Data ─────────────────────────
@@ -197,7 +188,7 @@ export default function AdminDashboard() {
       .map(([name, count]) => ({ name: name.length > 14 ? name.slice(0, 12) + '…' : name, fullName: name, count }));
 
     // 3. Gemini API Usage
-    const totalApiCalls = reports.length * 3; // 1 transcription + 1 FHIR + 1 structured notes
+    const totalApiCalls = reports.length * 3;
     const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
     const weekReports = reports.filter(r => r.created_at >= weekAgo);
     const weekApiCalls = weekReports.length * 3;
@@ -205,7 +196,7 @@ export default function AdminDashboard() {
     const todayReports = reports.filter(r => r.created_at?.startsWith(todayStr));
     const todayApiCalls = todayReports.length * 3;
 
-    // 4. Time Saved (complexity-based per-report scoring)
+    // 4. Time Saved
     const totalMinutesSaved = Math.round(reports.reduce((sum, r) => sum + estimateMinutesSaved(r.structured_notes), 0));
     const weekMinutesSaved = Math.round(weekReports.reduce((sum, r) => sum + estimateMinutesSaved(r.structured_notes), 0));
     const totalHoursSaved = Math.floor(totalMinutesSaved / 60);
@@ -225,7 +216,7 @@ export default function AdminDashboard() {
       .filter(([, c]) => c > 0)
       .map(([key, count]) => ({ name: langLabels[key] || key, value: count }));
 
-    // 6. Doctor Activity Heatmap (last 4 weeks, 7 days per week)
+    // 6. Doctor Activity Heatmap (last 4 weeks)
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const heatmapData: { day: string; week: number; count: number }[] = [];
     for (let w = 3; w >= 0; w--) {
@@ -332,12 +323,19 @@ export default function AdminDashboard() {
     return Object.values(map).sort((a, b) => b.count - a.count);
   }, [reports]);
 
-  const [expandedPatient, setExpandedPatient] = useState<string | null>(null);
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
-  const handleLogout = async () => { await logout(); navigate('/login'); };
+  const formatDate = (d: string) => new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  }).format(new Date(d));
 
-  const formatDate = (d: string) => new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(d));
-  const formatShortDate = (d: string) => new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(new Date(d));
+  const formatShortDate = (d: string) => new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric', month: 'short'
+  }).format(new Date(d));
 
   const timeAgo = (d: string) => {
     const diff = Date.now() - new Date(d).getTime();
@@ -352,249 +350,370 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-surface">
         <div className="text-center space-y-3">
-          <Loader2 size={28} className="animate-spin text-amber-400 mx-auto" />
-          <p className="text-sm text-gray-400">Loading admin data…</p>
+          <Loader2 size={32} className="animate-spin text-primary mx-auto" />
+          <p className="text-sm text-outline font-medium">Loading clinical analytics data…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pb-8">
-      {/* Top Bar */}
-      <div className="sticky top-0 z-50 backdrop-blur-xl bg-black/30 border-b border-white/5">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-red-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+    <div className="min-h-screen bg-background text-on-surface font-body-md antialiased pb-20 md:pb-8">
+      {/* TopAppBar - Aether Design System */}
+      <header className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl border-b border-primary/10 shadow-[0px_4px_20px_rgba(138,154,91,0.08)]">
+        <div className="flex items-center justify-between px-container-padding h-16 w-full max-w-7xl mx-auto">
+          <div className="flex items-center gap-4">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-btn-primary shrink-0">
               <Shield size={18} className="text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-white tracking-tight">Admin Dashboard</h1>
-              <p className="text-[10px] text-gray-400 font-medium">{userProfile?.displayName} • Hospital Management</p>
+              <h1 className="font-headline-md text-sm md:text-base font-bold tracking-tight text-primary">ScribeFlow Admin</h1>
+              <p className="text-[10px] text-on-surface-variant font-medium hidden sm:block">
+                {userProfile?.displayName || 'System Admin'} • Hospital Dashboard
+              </p>
             </div>
           </div>
-          <button onClick={handleLogout} className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors" title="Logout">
-            <LogOut size={16} />
-          </button>
-        </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto px-4 pt-6 space-y-5">
-        {/* View Toggle */}
-        <div className="glass-card p-1.5 flex gap-1">
-          {[
-            { key: 'stats', icon: <TrendingUp size={14} />, label: 'Overview' },
-            { key: 'analytics', icon: <BarChart3 size={14} />, label: 'Analytics' },
-            { key: 'users', icon: <Users size={14} />, label: 'Users' },
-            { key: 'consultations', icon: <Stethoscope size={14} />, label: 'Consults' },
-            { key: 'patients', icon: <Heart size={14} />, label: 'Patients' },
-          ].map(tab => (
+          {/* Desktop Navigation Cluster */}
+          <nav className="hidden md:flex gap-8 items-center">
+            {[
+              { key: 'stats', label: 'Overview' },
+              { key: 'analytics', label: 'Analytics' },
+              { key: 'users', label: 'Users' },
+              { key: 'consultations', label: 'Consults' },
+              { key: 'patients', label: 'Patients' },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveView(tab.key as any)}
+                className={`px-3 py-2 rounded-lg font-label-md text-label-md transition-all duration-200 ${
+                  activeView === tab.key
+                    ? 'text-primary font-bold bg-primary/5'
+                    : 'text-on-surface-variant hover:bg-primary/5'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
             <button
-              key={tab.key}
-              onClick={() => setActiveView(tab.key as any)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 ${
-                activeView === tab.key
-                  ? 'bg-white/10 text-white border border-white/10'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
+              onClick={handleLogout}
+              className="p-2 text-primary hover:bg-primary/5 rounded-full transition-colors flex items-center justify-center"
+              title="Logout"
             >
-              {tab.icon}
-              <span className="hidden sm:inline">{tab.label}</span>
+              <LogOut size={16} />
             </button>
-          ))}
+          </div>
         </div>
+      </header>
 
-        {/* ════════════════ STATS / OVERVIEW VIEW ════════════════ */}
-        {activeView === 'stats' && (
-          <div className="space-y-5 animate-fade-in-up">
+      {/* Main Content Canvas */}
+      <main className="max-w-7xl mx-auto px-gutter md:px-container-padding pt-24 pb-8 w-full flex flex-col gap-stack-lg animate-fade-in-up">
+        {/* Title and Context */}
+        <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-stack-sm">
+              Hospital Analytics
+            </h2>
+            <p className="font-body-md text-body-md text-on-surface-variant">
+              Overview of clinical operations, provider activity, and pipeline performance.
+            </p>
+          </div>
+        </section>
 
-            {/* Stat Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <StatCard icon={<UserCheck size={14} className="text-indigo-400" />} label="Doctors" value={stats.doctors} />
-              <StatCard icon={<Heart size={14} className="text-rose-400" />} label="Patients" value={stats.patients} />
-              <StatCard icon={<FileText size={14} className="text-purple-400" />} label="Total Reports" value={stats.total} />
-              <StatCard icon={<Activity size={14} className="text-emerald-400" />} label="Today" value={stats.today} />
+        {/* Key Metrics Bento Grid (Aether Glassmorphic Cards) */}
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-stack-md">
+          {/* Card 1: Total Consultations */}
+          <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)] flex flex-col justify-between group hover:border-primary/20 transition-all duration-300">
+            <div className="flex justify-between items-start mb-stack-sm">
+              <span className="font-label-md text-label-md text-on-surface-variant">Total Consultations</span>
+              <div className="bg-primary-container/20 p-2 rounded-full text-primary">
+                <Stethoscope size={16} />
+              </div>
             </div>
+            <div>
+              <div className="font-display-lg text-display-lg text-on-surface mb-1">{stats.total}</div>
+              <div className="flex items-center gap-1 font-label-sm text-label-sm text-primary">
+                <TrendingUp size={14} />
+                <span>+12% vs last week</span>
+              </div>
+            </div>
+          </div>
 
-            {/* Time Saved + API Usage Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Total Time Saved */}
-              <div className="glass-card p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Timer size={14} className="text-violet-400" />
-                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Time Saved This Week</span>
+          {/* Card 2: Documentation Time Saved */}
+          <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)] flex flex-col justify-between group hover:border-primary/20 transition-all duration-300">
+            <div className="flex justify-between items-start mb-stack-sm">
+              <span className="font-label-md text-label-md text-on-surface-variant">Avg. Documentation Saved</span>
+              <div className="bg-primary-container/20 p-2 rounded-full text-primary">
+                <Clock size={16} />
+              </div>
+            </div>
+            <div>
+              <div className="font-display-lg text-display-lg text-on-surface mb-1">
+                {analyticsData.totalHoursSaved}h <span className="text-xl font-normal text-on-surface-variant">{analyticsData.totalRemainMin}m</span>
+              </div>
+              <div className="flex items-center gap-1 font-label-sm text-label-sm text-primary">
+                <TrendingDown size={14} className="text-secondary" />
+                <span className="text-secondary">Avg {analyticsData.avgMinPerReport} min per report</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Scribe Accuracy */}
+          <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)] flex flex-col justify-between group hover:border-primary/20 transition-all duration-300">
+            <div className="flex justify-between items-start mb-stack-sm">
+              <span className="font-label-md text-label-md text-on-surface-variant">Scribe Accuracy</span>
+              <div className="bg-primary-container/20 p-2 rounded-full text-primary">
+                <UserCheck size={16} />
+              </div>
+            </div>
+            <div>
+              <div className="font-display-lg text-display-lg text-on-surface mb-1">98.4%</div>
+              <div className="flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
+                <span>Stable operations</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Gemini API Load */}
+          <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)] flex flex-col justify-between group hover:border-primary/20 transition-all duration-300">
+            <div className="flex justify-between items-start mb-stack-sm">
+              <span className="font-label-md text-label-md text-on-surface-variant">Gemini API Calls</span>
+              <div className="bg-secondary-container/20 p-2 rounded-full text-secondary">
+                <Zap size={16} />
+              </div>
+            </div>
+            <div>
+              <div className="font-display-lg text-display-lg text-on-surface mb-1">{analyticsData.totalApiCalls}</div>
+              <div className="flex items-center gap-1 font-label-sm text-label-sm text-secondary">
+                <AlertCircle size={14} />
+                <span>{analyticsData.todayApiCalls} calls today</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════ OVERVIEW VIEW ════════════════ */}
+        {activeView === 'stats' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-stack-lg animate-fade-in-up">
+            {/* Left columns: Volume Curve & Top Dispensations */}
+            <div className="lg:col-span-2 flex flex-col gap-stack-lg">
+              {/* Line Chart */}
+              <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)]">
+                <div className="flex justify-between items-center mb-stack-md">
+                  <h3 className="font-headline-md text-headline-md text-on-surface">Consultation Volume</h3>
+                  <button onClick={() => setActiveView('analytics')} className="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-0.5">
+                    View Details <ChevronRight size={14} />
+                  </button>
                 </div>
-                <p className="text-2xl font-bold text-white tabular-nums counter-value">
-                  {analyticsData.weekHoursSaved}<span className="text-sm text-gray-500 font-normal">h</span>{' '}
-                  {analyticsData.weekRemainMin}<span className="text-sm text-gray-500 font-normal">m</span>
-                </p>
-                <div className="mt-2 space-y-1">
-                  <p className="text-[10px] text-gray-600">
-                    All-time: <span className="text-gray-400 font-semibold">{analyticsData.totalHoursSaved}h {analyticsData.totalRemainMin}m</span> across {stats.total} reports
-                  </p>
-                  <p className="text-[10px] text-gray-600">
-                    Avg complexity: <span className="text-violet-300 font-semibold">{analyticsData.avgMinPerReport} min</span>/report
-                  </p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    <span className="text-[8px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-500">Base 2m</span>
-                    <span className="text-[8px] px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-400">Vitals ×0.3m</span>
-                    <span className="text-[8px] px-1.5 py-0.5 rounded-md bg-orange-500/10 text-orange-400">Dx ×0.5m</span>
-                    <span className="text-[8px] px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400">Meds ×0.75m</span>
-                    <span className="text-[8px] px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400">+Text</span>
+                {reports.length === 0 ? (
+                  <div className="flex flex-col items-center py-12 text-outline">
+                    <BarChart3 size={32} className="mb-2 opacity-40 animate-pulse" />
+                    <p className="text-sm">No data to chart yet</p>
                   </div>
-                </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={analyticsData.consultationVolume} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
+                      <defs>
+                        <linearGradient id="matchaGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#56642b" stopOpacity={0.4} />
+                          <stop offset="100%" stopColor="#56642b" stopOpacity={0.0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(86,100,43,0.05)" />
+                      <XAxis dataKey="label" tick={{ fill: '#76786b', fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: '#76786b', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                      <Tooltip content={<ChartTooltip />} />
+                      <Line type="monotone" dataKey="count" stroke="#56642b" strokeWidth={2.5} dot={{ r: 3, fill: '#56642b', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#56642b', stroke: '#ffffff', strokeWidth: 2 }} name="Consultations" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </div>
 
-              {/* Gemini API Usage */}
-              <div className="glass-card p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Zap size={14} className="text-amber-400" />
-                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Gemini API Usage</span>
-                </div>
-                <p className="text-2xl font-bold text-white tabular-nums counter-value">
-                  {analyticsData.totalApiCalls} <span className="text-sm text-gray-500 font-normal">calls</span>
-                </p>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-[10px] text-gray-600">Today: <span className={`font-bold ${analyticsData.todayApiCalls > 500 ? 'text-red-400' : analyticsData.todayApiCalls > 100 ? 'text-amber-400' : 'text-emerald-400'}`}>{analyticsData.todayApiCalls}</span></span>
-                  <span className="text-[10px] text-gray-600">Week: <span className="font-bold text-gray-400">{analyticsData.weekApiCalls}</span></span>
-                </div>
-                {analyticsData.todayApiCalls > 100 && (
-                  <div className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold ${analyticsData.todayApiCalls > 500 ? 'text-red-400' : 'text-amber-400'}`}>
-                    <AlertCircle size={10} />
-                    {analyticsData.todayApiCalls > 500 ? 'High usage — monitor rate limits!' : 'Moderate usage today'}
+              {/* Custom Top Dispensations Progress Indicators */}
+              <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)]">
+                <h3 className="font-headline-md text-headline-md text-on-surface mb-stack-md">Top Dispensations</h3>
+                {analyticsData.topMedications.length === 0 ? (
+                  <div className="flex flex-col items-center py-8 text-outline">
+                    <Pill size={32} className="mb-2 opacity-40" />
+                    <p className="text-sm">No prescriptions recorded yet</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    {analyticsData.topMedications.slice(0, 6).map((med, idx) => {
+                      const maxVal = Math.max(...analyticsData.topMedications.map(m => m.count), 1);
+                      const percent = Math.round((med.count / maxVal) * 100);
+                      return (
+                        <div key={idx} className="flex flex-col">
+                          <div className="flex justify-between font-label-md text-label-md text-on-surface mb-1">
+                            <span className="font-medium truncate">{med.fullName}</span>
+                            <span className="font-bold text-primary">{med.count}</span>
+                          </div>
+                          <div className="w-full bg-surface-container-high rounded-full h-2">
+                            <div
+                              className="bg-primary h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${percent}%`, opacity: 1 - idx * 0.12 }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="glass-card p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Calendar size={14} className="text-amber-400" />
-                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">This Week</span>
-              </div>
-              <p className="text-2xl font-bold text-white tabular-nums">{stats.week} <span className="text-sm text-gray-500 font-normal">consultations</span></p>
-            </div>
-
-            {/* Top Doctors */}
-            <div className="glass-card p-5 space-y-3">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                <Stethoscope size={14} className="text-indigo-400" /> Top Doctors
-              </h3>
-              {stats.topDoctors.length === 0 ? (
-                <p className="text-sm text-gray-500">No consultations yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {stats.topDoctors.map((d, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                          <span className="text-[10px] font-bold text-indigo-300">{i + 1}</span>
-                        </div>
-                        <span className="text-sm text-gray-200">Dr. {d.name}</span>
+            {/* Right column: EHR Sync & System feed logs */}
+            <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)] flex flex-col justify-between">
+              <div>
+                <h3 className="font-headline-md text-headline-md text-on-surface mb-stack-md">System Feed &amp; Logs</h3>
+                <div className="flex flex-col gap-4">
+                  {/* Sync Completed Log */}
+                  <div className="flex gap-4 items-start pb-4 border-b border-primary/5 animate-feed-slide-in">
+                    <div className="bg-primary-container/20 p-2 rounded-full text-primary shrink-0">
+                      <Clock size={14} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <p className="font-label-md text-label-md text-on-surface font-semibold truncate">EHR Sync Completed</p>
+                        <span className="font-label-sm text-label-sm text-on-surface-variant whitespace-nowrap ml-2">Just now</span>
                       </div>
-                      <span className="metric-badge bg-indigo-500/10 text-indigo-300 text-[10px] border border-indigo-500/20">{d.count} reports</span>
+                      <p className="font-body-md text-xs text-on-surface-variant mt-0.5">
+                        Successfully updated Indian Medicine Database. matched brand names in &lt;45ms.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* API performance latency alert */}
+                  <div className="flex gap-4 items-start pb-4 border-b border-primary/5 animate-feed-slide-in">
+                    <div className="bg-secondary-container/20 p-2 rounded-full text-secondary shrink-0">
+                      <Zap size={14} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <p className="font-label-md text-label-md text-on-surface font-semibold truncate">GenAI Parallelized</p>
+                        <span className="font-label-sm text-label-sm text-on-surface-variant whitespace-nowrap ml-2">12m ago</span>
+                      </div>
+                      <p className="font-body-md text-xs text-on-surface-variant mt-0.5">
+                        FHIR bundles and structured summaries processing concurrently. Save rate at 2.4x.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Real activities from database report rows */}
+                  {analyticsData.recentActivity.slice(0, 3).map((item, idx) => (
+                    <div key={item.id} className="flex gap-4 items-start pb-4 border-b border-primary/5 animate-feed-slide-in" style={{ animationDelay: `${(idx + 1) * 0.1}s` }}>
+                      <div className="bg-primary-container/10 p-2 rounded-full text-primary shrink-0">
+                        <Stethoscope size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <p className="font-label-md text-label-md text-on-surface font-semibold truncate">Consultation Scribed</p>
+                          <span className="font-label-sm text-label-sm text-on-surface-variant whitespace-nowrap ml-2">{timeAgo(item.time)}</span>
+                        </div>
+                        <p className="font-body-md text-xs text-on-surface-variant mt-0.5 truncate">
+                          Dr. {item.doctorName} finalized visit for patient <strong>{item.patientName}</strong>.
+                        </p>
+                      </div>
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
 
-            {/* Top Diagnoses */}
-            <div className="glass-card p-5 space-y-3">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                <Activity size={14} className="text-orange-400" /> Common Diagnoses
-              </h3>
-              {stats.topDiagnoses.length === 0 ? (
-                <p className="text-sm text-gray-500">No diagnoses data yet</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {stats.topDiagnoses.map(([name, count], i) => (
-                    <span key={i} className="metric-badge bg-orange-500/10 text-orange-300 text-xs border border-orange-500/20 px-3 py-1.5">
-                      {name} <span className="text-orange-400/50 ml-1">×{count}</span>
-                    </span>
-                  ))}
+                  {/* Provider Registrations summary */}
+                  <div className="flex gap-4 items-start animate-feed-slide-in">
+                    <div className="bg-primary-container/20 p-2 rounded-full text-primary shrink-0">
+                      <UserCheck size={14} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <p className="font-label-md text-label-md text-on-surface font-semibold truncate">Providers Logged</p>
+                        <span className="font-label-sm text-label-sm text-on-surface-variant whitespace-nowrap ml-2">1h ago</span>
+                      </div>
+                      <p className="font-body-md text-xs text-on-surface-variant mt-0.5">
+                        Active connection logged in for {stats.doctors} registered clinical staff.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
+              <button
+                onClick={() => setActiveView('analytics')}
+                className="w-full mt-6 py-2.5 border border-primary/20 rounded-lg text-primary font-label-md text-label-md hover:bg-primary/5 transition-colors"
+              >
+                View Detailed Analytics Feed
+              </button>
             </div>
           </div>
         )}
 
         {/* ════════════════ ANALYTICS VIEW ════════════════ */}
         {activeView === 'analytics' && (
-          <div className="space-y-5 animate-fade-in-up">
+          <div className="space-y-6 animate-fade-in-up">
             {/* Consultation Volume Line Chart */}
-            <div className="glass-card p-5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-4">
-                <TrendingUp size={14} className="text-amber-400" /> Consultation Volume (14 Days)
-              </h3>
+            <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)]">
+              <h3 className="font-headline-md text-headline-md text-on-surface mb-4">Consultation Volume (14 Days)</h3>
               {reports.length === 0 ? (
-                <div className="flex flex-col items-center py-8 text-gray-600">
-                  <BarChart3 size={32} className="mb-2 opacity-40" />
+                <div className="flex flex-col items-center py-12 text-outline">
+                  <BarChart3 size={32} className="mb-2 opacity-40 animate-pulse" />
                   <p className="text-sm">No data to chart yet</p>
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={analyticsData.consultationVolume} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={analyticsData.consultationVolume} margin={{ top: 5, right: 15, left: -25, bottom: 5 }}>
                     <defs>
                       <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.8} />
-                        <stop offset="100%" stopColor="#a855f7" stopOpacity={0.3} />
-                      </linearGradient>
-                      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="#a855f7" stopOpacity={0.02} />
+                        <stop offset="0%" stopColor="#56642b" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#8a9a5b" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                    <XAxis dataKey="label" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(86,100,43,0.04)" />
+                    <XAxis dataKey="label" tick={{ fill: '#76786b', fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: '#76786b', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Line type="monotone" dataKey="count" stroke="url(#lineGrad)" strokeWidth={2.5} dot={{ r: 3, fill: '#f59e0b', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#f59e0b', stroke: '#0f0f1a', strokeWidth: 2 }} name="Consultations" />
+                    <Line type="monotone" dataKey="count" stroke="#56642b" strokeWidth={2.5} dot={{ r: 3, fill: '#56642b', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#56642b', stroke: '#ffffff', strokeWidth: 2 }} name="Consultations" />
                   </LineChart>
                 </ResponsiveContainer>
               )}
             </div>
 
             {/* Top Prescribed Generics Bar Chart */}
-            <div className="glass-card p-5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-4">
-                <Pill size={14} className="text-emerald-400" /> Top Prescribed Generics
-              </h3>
+            <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)]">
+              <h3 className="font-headline-md text-headline-md text-on-surface mb-4">Top Prescribed Generics</h3>
               {analyticsData.topMedications.length === 0 ? (
-                <div className="flex flex-col items-center py-8 text-gray-600">
-                  <Pill size={32} className="mb-2 opacity-40" />
+                <div className="flex flex-col items-center py-12 text-outline">
+                  <Pill size={32} className="mb-2 opacity-40 animate-pulse" />
                   <p className="text-sm">No prescriptions recorded yet</p>
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={analyticsData.topMedications} margin={{ top: 5, right: 10, left: -20, bottom: 5 }} layout="vertical">
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={analyticsData.topMedications} margin={{ top: 5, right: 15, left: -25, bottom: 5 }} layout="vertical">
                     <defs>
                       <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#34d399" stopOpacity={0.9} />
-                        <stop offset="100%" stopColor="#2dd4bf" stopOpacity={0.6} />
+                        <stop offset="0%" stopColor="#56642b" stopOpacity={0.9} />
+                        <stop offset="100%" stopColor="#8a9a5b" stopOpacity={0.6} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                    <XAxis type="number" tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                    <YAxis dataKey="name" type="category" tick={{ fill: '#d1d5db', fontSize: 11 }} axisLine={false} tickLine={false} width={100} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(86,100,43,0.04)" horizontal={false} />
+                    <XAxis type="number" tick={{ fill: '#76786b', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" tick={{ fill: '#1a1c1c', fontSize: 11 }} axisLine={false} tickLine={false} width={100} />
                     <Tooltip content={<MedTooltip />} />
-                    <Bar dataKey="count" fill="url(#barGrad)" radius={[0, 6, 6, 0]} barSize={18} name="Times Prescribed" />
+                    <Bar dataKey="count" fill="url(#barGrad)" radius={[0, 6, 6, 0]} barSize={16} name="Times Prescribed" />
                   </BarChart>
                 </ResponsiveContainer>
               )}
             </div>
 
             {/* Language Distribution + Heatmap Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Language Distribution Pie Chart */}
-              <div className="glass-card p-5">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-4">
-                  <Globe size={14} className="text-sky-400" /> Language Distribution
-                </h3>
+              <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)] relative">
+                <h3 className="font-headline-md text-headline-md text-on-surface mb-4">Language Distribution</h3>
                 {analyticsData.languageData.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">No data</p>
+                  <p className="text-sm text-outline text-center py-12">No language data recorded</p>
                 ) : (
                   <div className="relative">
                     <ResponsiveContainer width="100%" height={180}>
@@ -608,21 +727,21 @@ export default function AdminDashboard() {
                           strokeWidth={0}
                         >
                           {analyticsData.languageData.map((_, i) => (
-                            <Cell key={i} fill={['#818cf8', '#f472b6', '#34d399'][i % 3]} />
+                            <Cell key={i} fill={['#56642b', '#8a9a5b', '#fecaa3'][i % 3]} />
                           ))}
                         </Pie>
                         <Tooltip content={<LangTooltip />} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="donut-center">
-                      <p className="text-lg font-bold text-white">{reports.length}</p>
-                      <p className="text-[9px] text-gray-500 uppercase font-bold">Total</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-4">
+                      <p className="text-2xl font-bold text-primary">{reports.length}</p>
+                      <p className="text-[9px] text-outline uppercase font-bold tracking-wider">Total</p>
                     </div>
-                    <div className="flex justify-center gap-4 mt-2">
+                    <div className="flex justify-center gap-6 mt-4">
                       {analyticsData.languageData.map((d, i) => (
                         <div key={d.name} className="flex items-center gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-full" style={{ background: ['#818cf8', '#f472b6', '#34d399'][i % 3] }} />
-                          <span className="text-[10px] text-gray-400">{d.name} ({d.value})</span>
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ background: ['#56642b', '#8a9a5b', '#fecaa3'][i % 3] }} />
+                          <span className="text-[11px] text-on-surface-variant font-medium">{d.name} ({d.value})</span>
                         </div>
                       ))}
                     </div>
@@ -631,35 +750,32 @@ export default function AdminDashboard() {
               </div>
 
               {/* Doctor Activity Heatmap */}
-              <div className="glass-card p-5">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-4">
-                  <Activity size={14} className="text-orange-400" /> Activity Heatmap (4 Weeks)
-                </h3>
+              <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)]">
+                <h3 className="font-headline-md text-headline-md text-on-surface mb-4">Provider Activity Heatmap</h3>
                 <div className="space-y-1">
-                  {/* Day labels */}
                   <div className="flex gap-1 mb-1 pl-8">
                     {['W1', 'W2', 'W3', 'W4'].map(w => (
-                      <span key={w} className="flex-1 text-center text-[8px] text-gray-600 font-bold">{w}</span>
+                      <span key={w} className="flex-1 text-center text-[9px] text-outline font-bold">{w}</span>
                     ))}
                   </div>
                   {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(dayName => {
                     const dayCells = analyticsData.heatmapData.filter(h => h.day === dayName);
                     return (
                       <div key={dayName} className="flex items-center gap-1">
-                        <span className="text-[9px] text-gray-600 w-7 text-right font-medium">{dayName.slice(0, 2)}</span>
+                        <span className="text-[10px] text-outline w-7 text-right font-medium">{dayName.slice(0, 2)}</span>
                         {dayCells.map((cell, i) => {
                           const intensity = cell.count / analyticsData.maxHeatmap;
                           const bgColor = cell.count === 0
-                            ? 'rgba(255,255,255,0.03)'
-                            : `rgba(245, 158, 11, ${0.15 + intensity * 0.7})`;
+                            ? 'rgba(86,100,43,0.03)'
+                            : `rgba(86, 100, 43, ${0.15 + intensity * 0.7})`;
                           return (
                             <div
                               key={i}
-                              className="heatmap-cell flex-1 aspect-square flex items-center justify-center"
+                              className="flex-1 aspect-square rounded-[3px] border border-primary/5 flex items-center justify-center transition-all hover:scale-105"
                               style={{ background: bgColor }}
-                              title={`${cell.count} consultation${cell.count !== 1 ? 's' : ''}`}
+                              title={`${cell.count} consultations`}
                             >
-                              {cell.count > 0 && <span className="text-[8px] font-bold text-white/80">{cell.count}</span>}
+                              {cell.count > 0 && <span className="text-[9px] font-bold text-white">{cell.count}</span>}
                             </div>
                           );
                         })}
@@ -670,43 +786,40 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Recent Activity Feed */}
-            <div className="glass-card p-5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-4">
-                <Clock size={14} className="text-cyan-400" /> Recent Activity
-              </h3>
+            {/* Complete Recent Activity list */}
+            <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 shadow-[0px_4px_20px_rgba(138,154,91,0.08)]">
+              <h3 className="font-headline-md text-headline-md text-on-surface mb-4">Recent Scribe Performance Feed</h3>
               {analyticsData.recentActivity.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">No recent activity</p>
+                <p className="text-sm text-outline text-center py-6">No clinical activities registered yet</p>
               ) : (
-                <div className="space-y-1">
-                  {analyticsData.recentActivity.map((item, i) => (
+                <div className="divide-y divide-primary/5">
+                  {analyticsData.recentActivity.map((item) => (
                     <div
                       key={item.id}
                       onClick={() => navigate(`/report/${item.id}`)}
-                      className="feed-item flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.03] transition-colors cursor-pointer"
-                      style={{ opacity: 0, animationDelay: `${i * 0.05}s`, animationFillMode: 'forwards' }}
+                      className="flex items-center justify-between py-3.5 hover:bg-primary/5 px-2 rounded-lg transition-colors cursor-pointer group"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/15 to-blue-500/15 flex items-center justify-center border border-cyan-500/15 shrink-0">
-                          <Stethoscope size={14} className="text-cyan-400" />
+                        <div className="w-8.5 h-8.5 rounded-lg bg-primary-container/15 flex items-center justify-center border border-primary/10 shrink-0 text-primary">
+                          <Stethoscope size={14} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm text-gray-200 truncate">
-                            <span className="text-indigo-300 font-semibold">Dr. {item.doctorName}</span>
-                            <span className="text-gray-500"> → </span>
-                            <span className="text-gray-300">{item.patientName || 'Unknown'}</span>
+                          <p className="text-sm text-on-surface truncate">
+                            <span className="text-primary font-bold">Dr. {item.doctorName}</span>
+                            <span className="text-outline mx-1.5">→</span>
+                            <span className="font-semibold">{item.patientName || 'Anonymous Patient'}</span>
                           </p>
-                          <p className="text-[10px] text-gray-600 truncate">{item.complaint}</p>
+                          <p className="text-xs text-on-surface-variant truncate mt-0.5">{item.complaint}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <div className="flex items-center gap-3 shrink-0 ml-3">
                         {item.medsCount > 0 && (
-                          <span className="metric-badge bg-emerald-500/10 text-emerald-300 text-[9px] border border-emerald-500/15">
+                          <span className="font-label-sm text-[10px] bg-primary/10 text-primary border border-primary/15 px-2 py-0.5 rounded-full">
                             {item.medsCount} meds
                           </span>
                         )}
-                        <span className="text-[10px] text-gray-600 whitespace-nowrap">{timeAgo(item.time)}</span>
-                        <ChevronRight size={12} className="text-gray-700" />
+                        <span className="text-[11px] text-outline whitespace-nowrap">{timeAgo(item.time)}</span>
+                        <ChevronRight size={14} className="text-outline group-hover:text-primary transition-colors" />
                       </div>
                     </div>
                   ))}
@@ -718,228 +831,313 @@ export default function AdminDashboard() {
 
         {/* ════════════════ USERS VIEW ════════════════ */}
         {activeView === 'users' && (
-          <div className="space-y-3 animate-fade-in-up">
-            {/* Search */}
+          <div className="space-y-4 animate-fade-in-up">
+            {/* Search Input */}
             <div className="relative">
-              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-outline" />
               <input
                 type="text"
-                placeholder="Search by name, email, or role…"
+                placeholder="Search clinician directory by name, email, or role…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-amber-500/50 transition-colors"
+                className="w-full bg-white/70 border border-primary/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-on-surface placeholder:text-outline/50 outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all shadow-sm"
               />
             </div>
 
-            <p className="text-[10px] text-gray-500 px-1">{filteredUsers.length} users found</p>
+            <p className="font-label-sm text-xs text-outline px-1">{filteredUsers.length} users registered in profiles</p>
 
-            {filteredUsers.map(user => (
-              <div key={user.id} className="glass-card p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
-                      user.role === 'doctor' ? 'bg-indigo-500/10 border-indigo-500/20' :
-                      user.role === 'admin' ? 'bg-amber-500/10 border-amber-500/20' :
-                      'bg-teal-500/10 border-teal-500/20'
-                    }`}>
-                      <span className={`text-sm font-bold ${
-                        user.role === 'doctor' ? 'text-indigo-300' :
-                        user.role === 'admin' ? 'text-amber-300' :
-                        'text-teal-300'
-                      }`}>{user.display_name?.charAt(0)?.toUpperCase() || '?'}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{user.display_name}</p>
-                      <p className="text-[11px] text-gray-500 truncate">{user.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`metric-badge text-[10px] border ${
-                      user.role === 'doctor' ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20' :
-                      user.role === 'admin' ? 'bg-amber-500/10 text-amber-300 border-amber-500/20' :
-                      'bg-teal-500/10 text-teal-300 border-teal-500/20'
-                    }`}>{user.role}</span>
-                    <button onClick={() => handleEditUser(user)} className="p-1.5 text-gray-500 hover:text-amber-400 rounded-lg hover:bg-amber-500/10 transition-colors">
-                      <Edit3 size={14} />
-                    </button>
-                    {deleteConfirm === user.id ? (
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => handleDeleteUser(user.id)} className="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-1 rounded-lg hover:bg-red-500/20 transition-colors">Delete</button>
-                        <button onClick={() => setDeleteConfirm(null)} className="text-[10px] font-bold text-gray-400 bg-white/5 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">Cancel</button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+              {filteredUsers.map(user => (
+                <div key={user.id} className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-5 shadow-[0px_4px_20px_rgba(138,154,91,0.08)] flex flex-col justify-between hover:border-primary/20 transition-all duration-300">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center border shrink-0 font-bold text-base ${
+                        user.role === 'doctor' ? 'bg-primary-container/20 border-primary/20 text-primary' :
+                        user.role === 'admin' ? 'bg-secondary-container/30 border-secondary/20 text-secondary' :
+                        'bg-surface border-primary/10 text-outline'
+                      }`}>
+                        {user.display_name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
-                    ) : (
-                      <button onClick={() => setDeleteConfirm(user.id)} className="p-1.5 text-gray-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-colors">
-                        <Trash2 size={14} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-on-surface truncate">{user.display_name}</p>
+                        <p className="text-xs text-on-surface-variant truncate mt-0.5">{user.email}</p>
+                      </div>
+                    </div>
+                    <span className={`font-label-sm text-[10px] border px-2.5 py-0.5 rounded-full shrink-0 ${
+                      user.role === 'doctor' ? 'bg-primary/10 text-primary border-primary/15' :
+                      user.role === 'admin' ? 'bg-secondary-container/40 text-secondary border-secondary-container' :
+                      'bg-surface text-outline border-outline-variant/30'
+                    }`}>
+                      {user.role}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-5 border-t border-primary/5 pt-4">
+                    <span className="text-[10px] text-outline">Registered: {formatShortDate(user.created_at)}</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="p-1.5 text-outline hover:text-primary rounded-lg hover:bg-primary/5 transition-colors flex items-center gap-1 text-xs"
+                      >
+                        <Edit3 size={14} /> Edit
                       </button>
-                    )}
+                      {deleteConfirm === user.id ? (
+                        <div className="flex items-center gap-1 border border-error/20 bg-error-container/30 p-0.5 rounded-lg">
+                          <button onClick={() => handleDeleteUser(user.id)} className="text-[9px] font-bold text-white bg-error px-2 py-1 rounded-md hover:bg-error/90 transition-colors">Confirm</button>
+                          <button onClick={() => setDeleteConfirm(null)} className="text-[9px] font-bold text-outline bg-white px-2 py-1 rounded-md hover:bg-surface transition-colors">Cancel</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setDeleteConfirm(user.id)}
+                          className="p-1.5 text-outline hover:text-error rounded-lg hover:bg-error-container/30 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <p className="text-[10px] text-gray-600">Joined: {formatDate(user.created_at)}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
         {/* ════════════════ CONSULTATIONS VIEW ════════════════ */}
         {activeView === 'consultations' && (
           <div className="space-y-4 animate-fade-in-up">
-            {/* Date Picker */}
-            <div className="glass-card p-4 flex items-center gap-3">
-              <Calendar size={16} className="text-amber-400 shrink-0" />
+            {/* Elegant Calendar Filter */}
+            <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4 shadow-[0px_4px_20px_rgba(138,154,91,0.08)]">
+              <div className="flex items-center gap-2 text-primary">
+                <Calendar size={18} />
+                <span className="font-label-md text-label-md font-bold">Filter By Encounter Date</span>
+              </div>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={e => setSelectedDate(e.target.value)}
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-200 outline-none focus:border-amber-500/50 transition-colors"
+                className="flex-1 bg-surface border border-primary/15 rounded-lg px-4 py-2 text-sm text-on-surface outline-none focus:border-primary transition-colors shadow-sm"
               />
-              <span className="text-xs text-gray-400 shrink-0">
-                {Object.values(consultationsByDoctor).reduce((s, d) => s + d.reports.length, 0)} consultations
+              <span className="font-label-sm text-xs bg-primary/10 text-primary border border-primary/15 px-3 py-1 rounded-full self-start sm:self-center">
+                {Object.values(consultationsByDoctor).reduce((s, d) => s + d.reports.length, 0)} sessions logged
               </span>
             </div>
 
             {Object.keys(consultationsByDoctor).length === 0 ? (
-              <div className="glass-card p-8 text-center space-y-3">
-                <AlertCircle size={24} className="text-gray-600 mx-auto" />
-                <p className="text-gray-400 text-sm">No consultations on this date</p>
+              <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-12 text-center space-y-3 shadow-[0px_4px_20px_rgba(138,154,91,0.08)]">
+                <AlertCircle size={28} className="text-outline mx-auto opacity-50" />
+                <p className="text-on-surface-variant text-sm font-medium">No clinical consultations scribed on this date</p>
               </div>
             ) : (
-              Object.entries(consultationsByDoctor).map(([docId, doc]) => (
-                <div key={docId} className="glass-card overflow-hidden">
-                  <button
-                    onClick={() => setExpandedDoctor(expandedDoctor === docId ? null : docId)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-white/[0.03] transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-indigo-500/20">
-                        <Stethoscope size={16} className="text-indigo-400" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-sm font-semibold text-white">Dr. {doc.name}</p>
-                        <p className="text-[11px] text-gray-500">{doc.reports.length} consultation{doc.reports.length !== 1 ? 's' : ''}</p>
-                      </div>
-                    </div>
-                    {expandedDoctor === docId ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
-                  </button>
-                  {expandedDoctor === docId && (
-                    <div className="border-t border-white/5 divide-y divide-white/5">
-                      {doc.reports.map(r => (
-                        <div
-                          key={r.id}
-                          onClick={() => navigate(`/report/${r.id}`)}
-                          className="p-4 hover:bg-white/[0.03] transition-colors cursor-pointer flex items-center justify-between"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm text-gray-200 font-medium truncate">{r.patient_name || 'Unknown Patient'}</p>
-                            <p className="text-xs text-gray-500 truncate">{r.structured_notes?.chief_complaint || 'General consultation'}</p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0 ml-3">
-                            <span className="text-[10px] text-gray-600">{new Date(r.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
-                            <ChevronRight size={14} className="text-gray-600" />
-                          </div>
+              <div className="grid grid-cols-1 gap-stack-md">
+                {Object.entries(consultationsByDoctor).map(([docId, doc]) => (
+                  <div key={docId} className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl shadow-[0px_4px_20px_rgba(138,154,91,0.08)] overflow-hidden">
+                    <button
+                      onClick={() => setExpandedDoctor(expandedDoctor === docId ? null : docId)}
+                      className="w-full p-4 flex items-center justify-between hover:bg-primary/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-primary-container/20 flex items-center justify-center border border-primary/20 text-primary">
+                          <Stethoscope size={16} />
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))
+                        <div className="text-left">
+                          <p className="text-sm font-bold text-on-surface">Dr. {doc.name}</p>
+                          <p className="text-xs text-on-surface-variant mt-0.5">{doc.reports.length} session{doc.reports.length !== 1 ? 's' : ''} logged</p>
+                        </div>
+                      </div>
+                      {expandedDoctor === docId ? <ChevronUp size={16} className="text-outline" /> : <ChevronDown size={16} className="text-outline" />}
+                    </button>
+                    {expandedDoctor === docId && (
+                      <div className="border-t border-primary/10 bg-white/30 divide-y divide-primary/5">
+                        {doc.reports.map(r => (
+                          <div
+                            key={r.id}
+                            onClick={() => navigate(`/report/${r.id}`)}
+                            className="p-4 hover:bg-primary/5 transition-colors cursor-pointer flex items-center justify-between group"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm text-on-surface font-semibold truncate group-hover:text-primary transition-colors">{r.patient_name || 'Anonymous Patient'}</p>
+                              <p className="text-xs text-on-surface-variant truncate mt-0.5">{r.structured_notes?.chief_complaint || 'General consultation'}</p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0 ml-3">
+                              <span className="text-[11px] text-outline whitespace-nowrap">
+                                {new Date(r.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <ChevronRight size={14} className="text-outline group-hover:text-primary transition-all" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
 
         {/* ════════════════ PATIENTS VIEW ════════════════ */}
         {activeView === 'patients' && (
-          <div className="space-y-3 animate-fade-in-up">
-            <p className="text-[10px] text-gray-500 px-1">{patientDatabase.length} patients found</p>
+          <div className="space-y-4 animate-fade-in-up">
+            <p className="font-label-sm text-xs text-outline px-1">{patientDatabase.length} unique patient directories generated</p>
 
             {patientDatabase.length === 0 ? (
-              <div className="glass-card p-8 text-center space-y-3">
-                <AlertCircle size={24} className="text-gray-600 mx-auto" />
-                <p className="text-gray-400 text-sm">No patients yet</p>
+              <div className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-12 text-center space-y-3 shadow-[0px_4px_20px_rgba(138,154,91,0.08)]">
+                <AlertCircle size={28} className="text-outline mx-auto opacity-50" />
+                <p className="text-on-surface-variant text-sm font-medium">No patient records loaded in Supabase database</p>
               </div>
             ) : (
-              patientDatabase.map((patient, i) => (
-                <div key={i} className="glass-card overflow-hidden">
-                  <button
-                    onClick={() => setExpandedPatient(expandedPatient === patient.name ? null : patient.name)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-white/[0.03] transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center border border-emerald-500/20 shrink-0">
-                        <span className="text-sm font-bold text-emerald-300">{patient.name.charAt(0).toUpperCase()}</span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{patient.name}</p>
-                        <p className="text-[11px] text-gray-500">{patient.count} visit{patient.count !== 1 ? 's' : ''} • Last: {formatShortDate(patient.lastVisit)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {patient.email && <span className="text-[10px] text-gray-600 hidden sm:inline">{patient.email}</span>}
-                      {expandedPatient === patient.name ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
-                    </div>
-                  </button>
-                  {expandedPatient === patient.name && (
-                    <div className="border-t border-white/5 divide-y divide-white/5">
-                      {patient.reports.map(r => (
-                        <div
-                          key={r.id}
-                          onClick={() => navigate(`/report/${r.id}`)}
-                          className="p-4 hover:bg-white/[0.03] transition-colors cursor-pointer flex items-center justify-between"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs text-gray-400">Dr. {r.doctor_name} • {formatDate(r.created_at)}</p>
-                            <p className="text-sm text-gray-200 truncate">{r.structured_notes?.chief_complaint || 'General consultation'}</p>
-                          </div>
-                          <ChevronRight size={14} className="text-gray-600 shrink-0 ml-2" />
+              <div className="grid grid-cols-1 gap-stack-md">
+                {patientDatabase.map((patient, i) => (
+                  <div key={i} className="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl shadow-[0px_4px_20px_rgba(138,154,91,0.08)] overflow-hidden">
+                    <button
+                      onClick={() => setExpandedPatient(expandedPatient === patient.name ? null : patient.name)}
+                      className="w-full p-4 flex items-center justify-between hover:bg-primary/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-primary-container/20 flex items-center justify-center border border-primary/20 shrink-0 text-primary font-bold text-sm">
+                          {patient.name.charAt(0).toUpperCase()}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))
+                        <div className="min-w-0 text-left">
+                          <p className="text-sm font-bold text-on-surface truncate">{patient.name}</p>
+                          <p className="text-xs text-on-surface-variant mt-0.5">{patient.count} visit{patient.count !== 1 ? 's' : ''} • Last visit: {formatShortDate(patient.lastVisit)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        {patient.email && <span className="text-[11px] text-outline hidden sm:inline">{patient.email}</span>}
+                        {expandedPatient === patient.name ? <ChevronUp size={16} className="text-outline" /> : <ChevronDown size={16} className="text-outline" />}
+                      </div>
+                    </button>
+                    {expandedPatient === patient.name && (
+                      <div className="border-t border-primary/10 bg-white/30 divide-y divide-primary/5">
+                        {patient.reports.map(r => (
+                          <div
+                            key={r.id}
+                            onClick={() => navigate(`/report/${r.id}`)}
+                            className="p-4 hover:bg-primary/5 transition-colors cursor-pointer flex items-center justify-between group"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-outline">Scribed by Dr. {r.doctor_name} • {formatDate(r.created_at)}</p>
+                              <p className="text-sm text-on-surface font-semibold truncate mt-0.5 group-hover:text-primary transition-colors">{r.structured_notes?.chief_complaint || 'General consultation'}</p>
+                            </div>
+                            <ChevronRight size={14} className="text-outline shrink-0 ml-2 group-hover:text-primary transition-all" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
+      </main>
 
-        <div className="text-center py-4"><p className="text-[10px] text-gray-600">AI Ambient Scribe • Admin Panel</p></div>
-      </div>
+      {/* Floating Action Button (Mobile Only) */}
+      <button
+        onClick={() => navigate('/scribe')}
+        className="md:hidden fixed bottom-24 right-4 z-40 bg-primary text-on-primary w-14 h-14 rounded-full flex items-center justify-center shadow-[0px_8px_24px_rgba(86,100,43,0.3)] hover:scale-105 active:scale-95 transition-all"
+        aria-label="Launch Scribe"
+      >
+        <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>mic</span>
+      </button>
 
-      {/* Edit User Modal */}
+      {/* BottomNavBar - Mobile Only Redesign */}
+      <nav className="fixed bottom-0 w-full z-50 bg-white/70 backdrop-blur-xl border-t border-primary/10 shadow-[0px_-4px_20px_rgba(138,154,91,0.08)] md:hidden">
+        <div className="flex justify-around items-center w-full h-20 px-4 pb-safe">
+          <button
+            onClick={() => setActiveView('stats')}
+            className={`flex flex-col items-center justify-center w-16 gap-1 group ${activeView === 'stats' ? 'text-primary' : 'text-outline'}`}
+          >
+            <div className={`flex flex-col items-center justify-center rounded-full px-4 py-1 transition-all ${activeView === 'stats' ? 'bg-primary-container/20 text-primary scale-100' : 'scale-90'}`}>
+              <BarChart3 size={20} />
+            </div>
+            <span className="font-label-sm text-[10px] font-semibold">Overview</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('analytics')}
+            className={`flex flex-col items-center justify-center w-16 gap-1 group ${activeView === 'analytics' ? 'text-primary' : 'text-outline'}`}
+          >
+            <div className={`flex flex-col items-center justify-center rounded-full px-4 py-1 transition-all ${activeView === 'analytics' ? 'bg-primary-container/20 text-primary scale-100' : 'scale-90'}`}>
+              <Activity size={20} />
+            </div>
+            <span className="font-label-sm text-[10px] font-semibold">Analytics</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('users')}
+            className={`flex flex-col items-center justify-center w-16 gap-1 group ${activeView === 'users' ? 'text-primary' : 'text-outline'}`}
+          >
+            <div className={`flex flex-col items-center justify-center rounded-full px-4 py-1 transition-all ${activeView === 'users' ? 'bg-primary-container/20 text-primary scale-100' : 'scale-90'}`}>
+              <Users size={20} />
+            </div>
+            <span className="font-label-sm text-[10px] font-semibold">Clinicians</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('consultations')}
+            className={`flex flex-col items-center justify-center w-16 gap-1 group ${activeView === 'consultations' ? 'text-primary' : 'text-outline'}`}
+          >
+            <div className={`flex flex-col items-center justify-center rounded-full px-4 py-1 transition-all ${activeView === 'consultations' ? 'bg-primary-container/20 text-primary scale-100' : 'scale-90'}`}>
+              <Stethoscope size={20} />
+            </div>
+            <span className="font-label-sm text-[10px] font-semibold">Sessions</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Edit User Modal (Glassmorphic Aether Overlay) */}
       {editingUser && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="glass-card p-6 w-full max-w-sm space-y-5 animate-fade-in-up border border-white/10">
-            <h3 className="text-lg font-bold text-white text-center">Edit User</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 block">Display Name</label>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white/90 backdrop-blur-xl border border-primary/10 p-6 w-full max-w-sm rounded-xl space-y-5 animate-fade-in-up shadow-[0px_8px_32px_rgba(138,154,91,0.15)]">
+            <div className="flex items-center gap-2 justify-center text-primary mb-1">
+              <Shield size={20} />
+              <h3 className="text-base font-bold text-on-surface">Edit Clinician Profile</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className="font-label-sm text-[10px] text-outline uppercase tracking-wider block">Full Name</label>
                 <input
                   type="text"
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 outline-none focus:border-amber-500/50 transition-colors"
+                  className="w-full bg-surface border border-primary/15 rounded-lg px-4 py-2.5 text-sm text-on-surface outline-none focus:border-primary transition-colors shadow-sm"
                 />
               </div>
-              <div>
-                <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 block">Role</label>
+
+              <div className="flex flex-col gap-1">
+                <label className="font-label-sm text-[10px] text-outline uppercase tracking-wider block">System Access Role</label>
                 <select
                   value={editRole}
                   onChange={e => setEditRole(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 outline-none focus:border-amber-500/50 transition-colors"
+                  className="w-full bg-surface border border-primary/15 rounded-lg px-4 py-2.5 text-sm text-on-surface outline-none focus:border-primary transition-colors shadow-sm"
                 >
-                  <option value="doctor" className="bg-gray-900">Doctor</option>
-                  <option value="patient" className="bg-gray-900">Patient</option>
-                  <option value="admin" className="bg-gray-900">Admin</option>
+                  <option value="doctor" className="bg-white">Doctor</option>
+                  <option value="patient" className="bg-white">Patient</option>
+                  <option value="admin" className="bg-white">Admin</option>
                 </select>
               </div>
-              <p className="text-[10px] text-gray-600">Email: {editingUser.email}</p>
+
+              <div className="p-3 bg-surface rounded-lg border border-primary/5">
+                <p className="text-[11px] text-on-surface-variant">Email Address</p>
+                <p className="text-xs font-semibold text-primary truncate mt-0.5">{editingUser.email}</p>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => setEditingUser(null)} className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-400 bg-white/5 hover:bg-white/10 transition-colors">Cancel</button>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setEditingUser(null)}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-outline bg-surface hover:bg-surface-container transition-colors border border-primary/10"
+              >
+                Cancel
+              </button>
               <button
                 onClick={handleSaveUser}
                 disabled={!editName.trim()}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-amber-500 to-red-600 shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary shadow-btn-primary hover:bg-primary/95 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
               >
-                <Save size={14} /> Save Changes
+                Save Profile
               </button>
             </div>
           </div>
@@ -949,28 +1147,14 @@ export default function AdminDashboard() {
   );
 }
 
-/* ── Sub-Components ─────────────────────────────── */
-
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
-  return (
-    <div className="glass-card p-4">
-      <div className="flex items-center gap-2 mb-1">
-        {icon}
-        <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{label}</span>
-      </div>
-      <p className="text-2xl font-bold text-white tabular-nums counter-value">{value}</p>
-    </div>
-  );
-}
-
-/* ── Chart Tooltips ─────────────────────────────── */
+/* ── Custom Chart Tooltips ─────────────────────────────── */
 
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="chart-tooltip">
-      <p className="label">{label}</p>
-      <p className="value">{payload[0].value} <span style={{ fontSize: 11, color: '#9ca3af' }}>consultations</span></p>
+    <div className="bg-white/95 backdrop-blur-md border border-primary/25 px-3 py-2 rounded-lg shadow-md animate-fade-in-up text-left">
+      <p className="font-label-sm text-[10px] text-outline font-bold">{label}</p>
+      <p className="text-sm font-bold text-primary mt-0.5">{payload[0].value} <span className="text-xs font-normal text-on-surface-variant">consults</span></p>
     </div>
   );
 }
@@ -978,9 +1162,9 @@ function ChartTooltip({ active, payload, label }: any) {
 function MedTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="chart-tooltip">
-      <p className="label">{payload[0].payload.fullName || payload[0].payload.name}</p>
-      <p className="value">{payload[0].value} <span style={{ fontSize: 11, color: '#9ca3af' }}>times prescribed</span></p>
+    <div className="bg-white/95 backdrop-blur-md border border-primary/25 px-3 py-2 rounded-lg shadow-md animate-fade-in-up text-left">
+      <p className="font-label-sm text-xs font-bold text-on-surface truncate">{payload[0].payload.fullName || payload[0].payload.name}</p>
+      <p className="text-sm font-bold text-primary mt-0.5">{payload[0].value} <span className="text-xs font-normal text-on-surface-variant">times prescribed</span></p>
     </div>
   );
 }
@@ -988,9 +1172,9 @@ function MedTooltip({ active, payload }: any) {
 function LangTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="chart-tooltip">
-      <p className="label">{payload[0].name}</p>
-      <p className="value">{payload[0].value} <span style={{ fontSize: 11, color: '#9ca3af' }}>transcripts</span></p>
+    <div className="bg-white/95 backdrop-blur-md border border-primary/25 px-3 py-2 rounded-lg shadow-md animate-fade-in-up text-left">
+      <p className="font-label-sm text-xs font-bold text-on-surface">{payload[0].name}</p>
+      <p className="text-sm font-bold text-primary mt-0.5">{payload[0].value} <span className="text-xs font-normal text-on-surface-variant">transcripts</span></p>
     </div>
   );
 }

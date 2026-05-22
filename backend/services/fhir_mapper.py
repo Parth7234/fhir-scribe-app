@@ -17,12 +17,65 @@ client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Use gemini-2.5-flash-lite for fast structured extraction (3-4s vs 16-18s for thinking model)
+# Use gemini-2.5-flash-lite for fast structured extraction, falling back to gemini-1.5-flash if unavailable
 FHIR_MODEL = "gemini-2.5-flash-lite"
 
 
 class TranscriptInput(BaseModel):
     transcript: str
+
+
+def generate_content_with_retry(contents, system_instruction):
+    models = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"]
+    last_err = None
+    for model in models:
+        for attempt in range(3):
+            try:
+                logger.info(f"Calling Gemini ({model}), attempt {attempt+1}/3...")
+                resp = client.models.generate_content(
+                    model=model,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.0,
+                        response_mime_type="application/json",
+                    ),
+                )
+                return resp
+            except Exception as e:
+                last_err = e
+                logger.warning(f"Attempt {attempt+1} for model {model} failed: {e}")
+                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                    logger.warning(f"Quota exceeded/Rate limited for {model}. Skipping remaining retries.")
+                    break
+                if attempt < 2:
+                    time.sleep(1)
+    raise last_err
+
+
+def repair_json(malformed_json: str) -> str:
+    logger.info("Attempting to repair malformed JSON via Gemini...")
+    try:
+        system_instruction = (
+            "You are an expert JSON recovery tool. Fix the following malformed JSON so that it is syntactically valid and well-formed JSON. "
+            "Do NOT change any keys, values, or clinical meaning. Just correct syntax errors (e.g. mismatched braces/brackets, missing commas, unescaped quotes). "
+            "Output ONLY the corrected valid JSON."
+        )
+        resp = generate_content_with_retry(
+            contents=malformed_json,
+            system_instruction=system_instruction,
+        )
+        content = resp.text.strip()
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+        return content.strip()
+    except Exception as e:
+        logger.error(f"JSON repair failed: {e}")
+        return malformed_json
 
 
 FHIR_SYSTEM_PROMPT = """
@@ -54,6 +107,7 @@ RULES:
    - MedicationRequest (drug name, dosage, frequency, route)
 7. If no patient name is mentioned, use "Unknown Patient" as placeholder.
 8. Do NOT include any explanatory text, markdown, or comments — pure JSON only.
+9. CRITICAL SYNTAX RULE: The "entry" array MUST contain ALL extracted resources. DO NOT close the "entry" array prematurely with "]" and then continue adding entries (e.g., writing "]," instead of "}," between items). Every single entry must be a valid JSON object inside the "entry": [ ... ] array, and the array must only close at the very end of the Bundle.
 """
 
 STRUCTURED_NOTES_PROMPT = """
@@ -93,14 +147,9 @@ async def process_fhir(input_data: TranscriptInput, token: dict = Depends(verify
     try:
         # --- Generate FHIR Bundle ---
         fhir_start = time.time()
-        fhir_response = client.models.generate_content(
-            model=FHIR_MODEL,
+        fhir_response = generate_content_with_retry(
             contents=f"Transcript to process:\n{input_data.transcript}",
-            config=types.GenerateContentConfig(
-                system_instruction=FHIR_SYSTEM_PROMPT,
-                temperature=0.0,
-                response_mime_type="application/json",
-            ),
+            system_instruction=FHIR_SYSTEM_PROMPT,
         )
         fhir_time_ms = int((time.time() - fhir_start) * 1000)
 
@@ -113,19 +162,19 @@ async def process_fhir(input_data: TranscriptInput, token: dict = Depends(verify
         if fhir_content.endswith("```"):
             fhir_content = fhir_content[:-3]
 
-        fhir_bundle = json.loads(fhir_content.strip())
+        try:
+            fhir_bundle = json.loads(fhir_content.strip())
+        except json.JSONDecodeError as decode_err:
+            logger.warning(f"Initial FHIR Bundle JSON parse failed: {decode_err}. Trying repair...")
+            repaired_content = repair_json(fhir_content)
+            fhir_bundle = json.loads(repaired_content.strip())
         logger.info(f"FHIR Bundle generated in {fhir_time_ms}ms with {len(fhir_bundle.get('entry', []))} entries")
 
         # --- Generate Structured Clinical Notes ---
         notes_start = time.time()
-        notes_response = client.models.generate_content(
-            model=FHIR_MODEL,
+        notes_response = generate_content_with_retry(
             contents=f"Transcript:\n{input_data.transcript}",
-            config=types.GenerateContentConfig(
-                system_instruction=STRUCTURED_NOTES_PROMPT,
-                temperature=0.0,
-                response_mime_type="application/json",
-            ),
+            system_instruction=STRUCTURED_NOTES_PROMPT,
         )
         notes_time_ms = int((time.time() - notes_start) * 1000)
 
@@ -137,7 +186,12 @@ async def process_fhir(input_data: TranscriptInput, token: dict = Depends(verify
         if notes_content.endswith("```"):
             notes_content = notes_content[:-3]
 
-        structured_notes = json.loads(notes_content.strip())
+        try:
+            structured_notes = json.loads(notes_content.strip())
+        except json.JSONDecodeError as decode_err:
+            logger.warning(f"Initial Structured Notes JSON parse failed: {decode_err}. Trying repair...")
+            repaired_content = repair_json(notes_content)
+            structured_notes = json.loads(repaired_content.strip())
         logger.info(f"Structured notes generated in {notes_time_ms}ms")
 
         # --- Enrich medications with Indian medicine database ---
@@ -179,6 +233,14 @@ async def process_fhir(input_data: TranscriptInput, token: dict = Depends(verify
 
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse error: {str(e)}")
+        # Log the raw contents for debugging
+        try:
+            if 'fhir_content' in locals():
+                logger.error(f"Raw fhir_content was:\n{fhir_content}")
+            if 'notes_content' in locals():
+                logger.error(f"Raw notes_content was:\n{notes_content}")
+        except Exception as log_err:
+            logger.error(f"Failed to log raw contents: {log_err}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to parse model output as JSON: {str(e)}"
@@ -186,4 +248,5 @@ async def process_fhir(input_data: TranscriptInput, token: dict = Depends(verify
     except Exception as e:
         logger.error(f"FHIR processing failed: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
 

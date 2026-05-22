@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Doctor Dashboard - ScribeFlow</title>
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration (Design System Tokens) -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed": "#161f00",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#849887",
+                        "on-secondary-fixed-variant": "#623f22",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#394b3d",
+                        "error": "#ba1a1a",
+                        "on-surface": "#1a1c1c",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed-dim": "#b7ccb9",
+                        "surface-bright": "#f9f9f9",
+                        "on-secondary-container": "#795334",
+                        "inverse-on-surface": "#f0f1f1",
+                        "on-background": "#1a1c1c",
+                        "primary-fixed": "#d9eaa3",
+                        "on-tertiary-container": "#1e3023",
+                        "on-surface-variant": "#46483c",
+                        "inverse-primary": "#bdce89",
+                        "on-error-container": "#93000a",
+                        "surface": "#f9f9f9",
+                        "surface-container-highest": "#e2e2e2",
+                        "on-tertiary": "#ffffff",
+                        "outline": "#76786b",
+                        "on-tertiary-fixed": "#0e1f13",
+                        "on-primary-container": "#253000",
+                        "secondary": "#7c5637",
+                        "surface-container": "#eeeeee",
+                        "tertiary-fixed": "#d3e8d5",
+                        "surface-container-high": "#e8e8e8",
+                        "surface-dim": "#dadada",
+                        "error-container": "#ffdad6",
+                        "primary": "#56642b",
+                        "on-secondary-fixed": "#2f1500",
+                        "background": "#f9f9f9",
+                        "inverse-surface": "#2f3131",
+                        "on-primary-fixed-variant": "#3e4c16",
+                        "secondary-fixed": "#ffdcc3",
+                        "primary-container": "#8a9a5b",
+                        "secondary-fixed-dim": "#efbc96",
+                        "surface-tint": "#56642b",
+                        "outline-variant": "#c6c8b8",
+                        "primary-fixed-dim": "#bdce89",
+                        "secondary-container": "#fecaa3",
+                        "surface-container-low": "#f3f3f3",
+                        "tertiary": "#506354",
+                        "on-error": "#ffffff",
+                        "surface-variant": "#e2e2e2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "container-padding": "24px",
+                        "unit": "8px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "stack-lg": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen selection:bg-primary/20 selection:text-primary">
+<!-- TopAppBar (Shared Component) -->
+<header class="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl border-b border-primary/10 shadow-[0px_4px_20px_rgba(138,154,91,0.08)]">
+<div class="flex items-center justify-between px-container-padding h-16 w-full max-w-7xl mx-auto">
+<!-- Leading Icon -->
+<button aria-label="Menu" class="text-on-surface-variant hover:bg-primary/5 transition-colors duration-200 p-2 rounded-full flex items-center justify-center -ml-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<!-- Brand Logo / Headline -->
+<div class="font-headline-md text-headline-md font-bold tracking-tight text-primary flex-1 text-center md:text-left md:ml-4">
+                ScribeFlow
+            </div>
+<!-- Trailing Avatar -->
+<button aria-label="Doctor profile" class="w-9 h-9 rounded-full overflow-hidden border border-primary/10 hover:opacity-80 transition-all flex-shrink-0">
+<img alt="Doctor profile" class="w-full h-full object-cover" data-alt="A professional headshot of a mature male doctor with silver hair and a warm, reassuring smile, wearing a clean white medical coat over a light blue shirt. The background is a soft, out-of-focus clinical setting with bright, natural lighting that emphasizes a trustworthy and modern medical aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6LEDZMGckQdi7vCITGpqKd_aKQLxLBh2Q33N4zJPAV3c4Me1YIGV5EUZ5cE-SpgquvR-_esD850RPtzJ8ec4ZiAFbsdT3ucuExwC0Dn1y8twMcRpjjd22pVSOJ7cb4cwahn1NBX1UY8pw8fsiXUPmA7N_8lnLLTivYEZt5Rh_XrDfsdS0bLQXIBJgm1bRtQbCr_wvbTy4epFQJdP9TllZZHD_uXy0otpmzYpU0A1-0BtgAfE_Q9MbhZUQAx2O4qfnam6Q1E97QEg"/>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 pb-32 md:pb-24 px-container-padding max-w-7xl mx-auto w-full flex flex-col gap-stack-lg">
+<!-- Header & Primary Action (Desktop) -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<p class="font-label-md text-label-md text-outline mb-1">Thursday, October 26</p>
+<!-- Responsive Typography: Mobile vs Desktop -->
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface">Good morning, Dr. Chen.</h1>
+</div>
+<!-- Desktop Primary Action -->
+<button class="hidden md:flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-full hover:bg-primary/90 transition-all shadow-[0px_4px_20px_rgba(138,154,91,0.15)] font-label-md text-label-md">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">add</span>
+                New Consultation
+            </button>
+</section>
+<!-- Stats Bento Grid (Glassmorphic Cards) -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Card 1: Patients Seen -->
+<div class="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 flex flex-col gap-4 shadow-[0px_4px_20px_rgba(138,154,91,0.08)] relative overflow-hidden group hover:border-primary/20 transition-colors">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+<div class="flex justify-between items-start z-10">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">group</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary bg-tertiary-fixed rounded-full px-2 py-0.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> 12%
+                    </span>
+</div>
+<div class="z-10 mt-2">
+<p class="font-label-md text-label-md text-outline">Patients Seen</p>
+<p class="font-display-lg text-display-lg text-on-surface mt-1">14</p>
+</div>
+</div>
+<!-- Card 2: Reports to Review (Peach Accent) -->
+<div class="bg-white/70 backdrop-blur-xl border border-secondary-container/50 rounded-xl p-6 flex flex-col gap-4 shadow-[0px_4px_20px_rgba(138,154,91,0.08)] relative overflow-hidden group hover:border-secondary-container transition-colors">
+<div class="absolute top-0 right-0 w-32 h-32 bg-secondary-container/20 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+<div class="flex justify-between items-start z-10">
+<div class="w-10 h-10 rounded-full bg-secondary-container/30 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">article</span>
+</div>
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+</div>
+<div class="z-10 mt-2">
+<p class="font-label-md text-label-md text-outline">Reports to Review</p>
+<p class="font-display-lg text-display-lg text-on-surface mt-1">5</p>
+</div>
+</div>
+<!-- Card 3: Shared Cases -->
+<div class="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-6 flex flex-col gap-4 shadow-[0px_4px_20px_rgba(138,154,91,0.08)] relative overflow-hidden group hover:border-primary/20 transition-colors">
+<div class="absolute top-0 right-0 w-32 h-32 bg-tertiary-container/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+<div class="flex justify-between items-start z-10">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">share</span>
+</div>
+</div>
+<div class="z-10 mt-2">
+<p class="font-label-md text-label-md text-outline">Shared Cases</p>
+<p class="font-display-lg text-display-lg text-on-surface mt-1">3</p>
+</div>
+</div>
+</section>
+<!-- Recent Patients List -->
+<section class="flex flex-col gap-stack-md">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md text-on-surface">Recent Patients</h2>
+<button class="font-label-md text-label-md text-primary hover:underline flex items-center gap-1">
+                    View All <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="flex flex-col gap-unit">
+<!-- List Item 1: Scribed (Peach Accent for Action Needed) -->
+<div class="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-4 flex items-center justify-between shadow-[0px_4px_20px_rgba(138,154,91,0.04)] hover:shadow-[0px_4px_20px_rgba(138,154,91,0.08)] transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant font-headline-md text-headline-md">
+                            EJ
+                        </div>
+<div>
+<p class="font-body-md text-body-md font-medium text-on-surface group-hover:text-primary transition-colors">Eleanor James</p>
+<p class="font-label-sm text-label-sm text-outline flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 09:30 AM · Follow-up
+                            </p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label-sm text-label-sm bg-secondary-container/40 text-secondary border border-secondary-container px-3 py-1 rounded-full hidden sm:inline-block">
+                            Scribed
+                        </span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+<!-- List Item 2: Review (Matcha Accent) -->
+<div class="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-4 flex items-center justify-between shadow-[0px_4px_20px_rgba(138,154,91,0.04)] hover:shadow-[0px_4px_20px_rgba(138,154,91,0.08)] transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant font-headline-md text-headline-md">
+                            MR
+                        </div>
+<div>
+<p class="font-body-md text-body-md font-medium text-on-surface group-hover:text-primary transition-colors">Marcus Rodriguez</p>
+<p class="font-label-sm text-label-sm text-outline flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 10:15 AM · Annual Physical
+                            </p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label-sm text-label-sm bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full hidden sm:inline-block">
+                            Review
+                        </span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+<!-- List Item 3: Signed (Neutral) -->
+<div class="bg-white/70 backdrop-blur-xl border border-primary/10 rounded-xl p-4 flex items-center justify-between shadow-[0px_4px_20px_rgba(138,154,91,0.04)] hover:shadow-[0px_4px_20px_rgba(138,154,91,0.08)] transition-all cursor-pointer group opacity-70 hover:opacity-100">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant font-headline-md text-headline-md">
+                            SL
+                        </div>
+<div>
+<p class="font-body-md text-body-md font-medium text-on-surface group-hover:text-primary transition-colors">Sarah Lin</p>
+<p class="font-label-sm text-label-sm text-outline flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 11:00 AM · Lab Results
+                            </p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label-sm text-label-sm bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full hidden sm:inline-block flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">check_circle</span> Signed
+                        </span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action Button (Mobile Only) -->
+<button aria-label="New Consultation" class="md:hidden fixed bottom-24 right-4 z-40 bg-primary text-on-primary w-14 h-14 rounded-full flex items-center justify-center shadow-[0px_8px_24px_rgba(86,100,43,0.3)] hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">add</span>
+</button>
+<!-- BottomNavBar (Shared Component - Mobile Only) -->
+<nav class="fixed bottom-0 w-full z-50 bg-white/70 backdrop-blur-xl border-t border-primary/10 shadow-[0px_-4px_20px_rgba(138,154,91,0.08)] md:hidden">
+<div class="flex justify-around items-center w-full h-20 px-4 pb-safe">
+<!-- Dashboard (Active) -->
+<button class="flex flex-col items-center justify-center w-16 gap-1 group">
+<div class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 scale-90 transition-transform duration-150 group-active:scale-95">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">Dashboard</span>
+</button>
+<!-- Scribe (Inactive) -->
+<button class="flex flex-col items-center justify-center w-16 gap-1 text-outline hover:bg-surface-container-high/50 transition-all rounded-lg py-1 group">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 0;">mic_none</span>
+<span class="font-label-sm text-label-sm font-medium">Scribe</span>
+</button>
+<!-- Patients (Inactive) -->
+<button class="flex flex-col items-center justify-center w-16 gap-1 text-outline hover:bg-surface-container-high/50 transition-all rounded-lg py-1 group">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 0;">group</span>
+<span class="font-label-sm text-label-sm font-medium">Patients</span>
+</button>
+<!-- Analytics (Inactive) -->
+<button class="flex flex-col items-center justify-center w-16 gap-1 text-outline hover:bg-surface-container-high/50 transition-all rounded-lg py-1 group">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 0;">analytics</span>
+<span class="font-label-sm text-label-sm font-medium">Analytics</span>
+</button>
+</div>
+</nav>
+</body></html>

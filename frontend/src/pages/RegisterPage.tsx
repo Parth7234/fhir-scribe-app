@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth, type UserRole } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import LanguageToggle from '../components/LanguageToggle';
-import { Stethoscope, Building2, Mail, Lock, User, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Stethoscope, Building2, Loader2, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export default function RegisterPage() {
   const [role, setRole] = useState<UserRole>('doctor');
@@ -61,157 +61,165 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-surface relative">
+      {/* Decorative Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-40">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary-container/20 blur-[100px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-secondary-container/20 blur-[100px]"></div>
+      </div>
+
+      <div className="relative z-10 w-full max-w-[480px] space-y-6">
         {/* Logo */}
-        <div className="text-center space-y-3">
-          <div className={`w-16 h-16 mx-auto rounded-2xl flex items-center justify-center shadow-lg ${
-            role === 'doctor'
-              ? 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-500/20'
-              : 'bg-gradient-to-br from-teal-500 to-cyan-600 shadow-teal-500/20'
-          }`}>
-            {role === 'doctor' ? <Stethoscope size={32} className="text-white" /> : <Building2 size={32} className="text-white" />}
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full bg-primary-container flex items-center justify-center shadow-sm">
+            {role === 'doctor'
+              ? <Stethoscope size={28} className="text-on-primary-container" />
+              : <Building2 size={28} className="text-on-primary-container" />
+            }
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-headline-lg text-primary tracking-tight font-semibold">
               {role === 'doctor' ? t('createAccount') : t('patientRegistration')}
             </h1>
-            <p className="text-gray-400 text-sm mt-1">
+            <p className="text-body-md text-on-surface-variant mt-2">
               {role === 'doctor' ? t('joinApp') : '🏥'}
             </p>
           </div>
           <LanguageToggle />
         </div>
 
-        {/* Role Tabs */}
-        <div className="glass-card p-1.5 flex gap-1" id="register-role-tabs">
-          <button
-            onClick={() => { setRole('doctor'); setError(''); setSuccessMessage(''); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${
-              role === 'doctor'
-                ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300 border border-indigo-500/30 shadow-lg shadow-indigo-500/10'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            <Stethoscope size={16} />
-            {t('imDoctor')}
-          </button>
-          <button
-            onClick={() => { setRole('patient'); setError(''); setSuccessMessage(''); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${
-              role === 'patient'
-                ? 'bg-gradient-to-r from-teal-500/20 to-cyan-500/20 text-teal-300 border border-teal-500/30 shadow-lg shadow-teal-500/10'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            <Building2 size={16} />
-            {t('imPatient')}
-          </button>
-        </div>
-
         {/* Success Message */}
         {successMessage && (
-          <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 animate-fade-in-up">
-            <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
-            <p className="text-emerald-300 text-sm font-medium">{successMessage}</p>
+          <div className="flex items-center gap-2 p-4 rounded-xl glass-card border-primary/20 animate-fade-in-up">
+            <CheckCircle2 size={18} className="text-primary shrink-0" />
+            <p className="text-primary text-sm font-medium">{successMessage}</p>
           </div>
         )}
 
-        {/* Registration Form */}
+        {/* Registration Card */}
         {!successMessage && (
-          <form onSubmit={handleSubmit} className="glass-card p-6 space-y-5">
-            <h2 className="text-lg font-bold text-white text-center">
-              {role === 'doctor' ? t('doctorRegistration') : t('patientRegistration')}
-            </h2>
+          <div className="glass-card p-8 md:p-10 space-y-8">
+            {/* Role Tabs */}
+            <nav className="flex p-1 bg-surface-container-low rounded-lg border border-outline-variant/30" id="register-role-tabs">
+              <button
+                onClick={() => { setRole('doctor'); setError(''); setSuccessMessage(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-label-md font-medium transition-all ${
+                  role === 'doctor'
+                    ? 'bg-secondary-container text-on-secondary-container shadow-sm'
+                    : 'text-on-surface-variant hover:bg-surface-variant/50'
+                }`}
+              >
+                <Stethoscope size={16} />
+                {t('imDoctor')}
+              </button>
+              <button
+                onClick={() => { setRole('patient'); setError(''); setSuccessMessage(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-label-md font-medium transition-all ${
+                  role === 'patient'
+                    ? 'bg-secondary-container text-on-secondary-container shadow-sm'
+                    : 'text-on-surface-variant hover:bg-surface-variant/50'
+                }`}
+              >
+                <Building2 size={16} />
+                {t('imPatient')}
+              </button>
+            </nav>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-                <AlertCircle size={16} className="text-red-400 shrink-0" />
-                <p className="text-red-300 text-sm">{error}</p>
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-error-container/50 border border-error/20">
+                <AlertCircle size={16} className="text-error shrink-0" />
+                <p className="text-on-error-container text-sm">{error}</p>
               </div>
             )}
 
-            <div className="space-y-4">
-              <div className="relative">
-                <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input
-                  id="name-input"
-                  type="text"
-                  placeholder={role === 'doctor' ? t('drFullName') : t('patientFullName')}
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-indigo-500/50 transition-colors"
-                />
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-4">
+                {/* Name */}
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline">person</span>
+                  <input
+                    id="name-input"
+                    type="text"
+                    placeholder={role === 'doctor' ? t('drFullName') : t('patientFullName')}
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    required
+                    className="w-full pl-12 pr-4 py-3.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors text-body-md text-on-surface placeholder:text-outline-variant/70 shadow-sm"
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline">mail</span>
+                  <input
+                    id="register-email-input"
+                    type="email"
+                    placeholder={role === 'patient' ? t('patientEmailLabel') : t('emailPlaceholder')}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full pl-12 pr-4 py-3.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors text-body-md text-on-surface placeholder:text-outline-variant/70 shadow-sm"
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline">lock</span>
+                  <input
+                    id="register-password-input"
+                    type="password"
+                    placeholder={role === 'patient' ? t('setPatientPassword') : t('passwordMinChars')}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full pl-12 pr-4 py-3.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors text-body-md text-on-surface placeholder:text-outline-variant/70 shadow-sm"
+                  />
+                </div>
+
+                {/* Confirm Password */}
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline">lock</span>
+                  <input
+                    id="confirm-password-input"
+                    type="password"
+                    placeholder={role === 'patient' ? t('confirmPatientPassword') : t('confirmPasswordPlaceholder')}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="w-full pl-12 pr-4 py-3.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors text-body-md text-on-surface placeholder:text-outline-variant/70 shadow-sm"
+                  />
+                </div>
               </div>
 
-              <div className="relative">
-                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input
-                  id="register-email-input"
-                  type="email"
-                  placeholder={role === 'patient' ? t('patientEmailLabel') : t('emailPlaceholder')}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-indigo-500/50 transition-colors"
-                />
-              </div>
+              <button
+                id="register-button"
+                type="submit"
+                disabled={loading}
+                className={`w-full py-4 bg-primary text-on-primary rounded-lg text-label-md font-semibold shadow-btn-primary hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${
+                  loading ? 'opacity-60 cursor-not-allowed' : ''
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    {role === 'patient' ? t('registeringPatient') : t('creatingAccount')}
+                  </>
+                ) : (
+                  <>
+                    {role === 'doctor' ? t('registerAsDoctor') : t('registerAsPatient')}
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
 
-              <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input
-                  id="register-password-input"
-                  type="password"
-                  placeholder={role === 'patient' ? t('setPatientPassword') : t('passwordMinChars')}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-indigo-500/50 transition-colors"
-                />
-              </div>
-
-              <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input
-                  id="confirm-password-input"
-                  type="password"
-                  placeholder={role === 'patient' ? t('confirmPatientPassword') : t('confirmPasswordPlaceholder')}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-indigo-500/50 transition-colors"
-                />
-              </div>
-            </div>
-
-            <button
-              id="register-button"
-              type="submit"
-              disabled={loading}
-              className={`w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
-                role === 'doctor'
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-indigo-500/30'
-                  : 'bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 shadow-teal-500/30'
-              } ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  {role === 'patient' ? t('registeringPatient') : t('creatingAccount')}
-                </>
-              ) : (
-                role === 'doctor' ? t('registerAsDoctor') : t('registerAsPatient')
-              )}
-            </button>
-
-            <p className="text-center text-sm text-gray-500">
-              {t('alreadyHaveAccount')}{' '}
-              <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
-                {t('signInHere')}
-              </Link>
-            </p>
-          </form>
+              <p className="text-center text-body-md text-on-surface-variant">
+                {t('alreadyHaveAccount')}{' '}
+                <Link to="/login" className="text-primary hover:underline font-medium transition-colors">
+                  {t('signInHere')}
+                </Link>
+              </p>
+            </form>
+          </div>
         )}
       </div>
     </div>

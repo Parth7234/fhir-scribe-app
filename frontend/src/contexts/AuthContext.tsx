@@ -126,43 +126,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Listen for auth state changes
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        let profile = await fetchProfile(currentUser.id);
-        // If no profile exists, try creating from pending data or user_metadata
-        if (!profile) {
-          profile = await createProfileFromPending(currentUser);
-        }
-        setUserProfile(profile);
-      } else {
-        setUserProfile(null);
-      }
-      setLoading(false);
-    });
+    let active = true;
 
-    // Listen for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+    const handleAuthChange = async (session: any) => {
+      try {
         const currentUser = session?.user ?? null;
+        if (!active) return;
         setUser(currentUser);
+
         if (currentUser) {
           let profile = await fetchProfile(currentUser.id);
+          if (!active) return;
           // If no profile exists, try creating from pending data or user_metadata
           if (!profile) {
             profile = await createProfileFromPending(currentUser);
           }
-          setUserProfile(profile);
+          if (active) {
+            setUserProfile(profile);
+          }
         } else {
-          setUserProfile(null);
+          if (active) {
+            setUserProfile(null);
+          }
         }
-        setLoading(false);
+      } catch (err) {
+        console.error('[AuthContext] Error handling auth state change:', err);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Get initial session
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (active) {
+          handleAuthChange(session);
+        }
+      })
+      .catch((err) => {
+        console.error('[AuthContext] Error getting initial session:', err);
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (active) {
+          handleAuthChange(session);
+        }
       }
     );
 
     return () => {
+      active = false;
       subscription.unsubscribe();
     };
   }, []);

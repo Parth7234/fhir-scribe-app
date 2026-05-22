@@ -5,7 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../supabase';
 import LanguageToggle from '../components/LanguageToggle';
 import {
-  Stethoscope, LogOut, Plus, Users, FileText, Clock,
+  LogOut, Plus, Users, FileText, Clock,
   ChevronRight, Loader2, AlertCircle, Share2, Send
 } from 'lucide-react';
 
@@ -210,226 +210,345 @@ export default function DoctorDashboard() {
     }).format(d);
   };
 
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const greeting = today.getHours() < 12 ? 'Good morning' : today.getHours() < 17 ? 'Good afternoon' : 'Good evening';
+
   return (
-    <div className="min-h-screen pb-8">
-      {/* Top Bar */}
-      <div className="sticky top-0 z-50 backdrop-blur-xl bg-black/30 border-b border-white/5">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Stethoscope size={18} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold text-white tracking-tight">Dr. {userProfile?.displayName}</h1>
-              <p className="text-[10px] text-gray-400 font-medium">{t('doctorDashboard')}</p>
-            </div>
+    <div className="min-h-screen bg-surface text-on-surface pb-24 md:pb-8">
+      {/* TopAppBar */}
+      <header className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl border-b border-primary/10 shadow-glass">
+        <div className="flex items-center justify-between px-container-padding h-16 w-full max-w-7xl mx-auto">
+          <div className="flex items-center gap-4">
+            <button className="md:hidden text-on-surface-variant hover:bg-primary/5 transition-colors duration-200 p-2 rounded-full flex items-center justify-center">
+              <span className="material-symbols-outlined">menu</span>
+            </button>
+            <div className="text-headline-md font-bold tracking-tight text-primary">ScribeFlow</div>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-6">
+            <button
+              onClick={() => setActiveView('reports')}
+              className={`text-label-md px-3 py-1.5 rounded-lg transition-all duration-200 ${
+                activeView === 'reports'
+                  ? 'text-primary font-bold bg-primary/5'
+                  : 'text-on-surface-variant hover:bg-primary/5'
+              }`}
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate('/scribe')}
+              className="text-label-md text-on-surface-variant hover:bg-primary/5 transition-colors duration-200 px-3 py-1.5 rounded-lg"
+            >
+              Scribe
+            </button>
+            <button
+              onClick={() => setActiveView('patients')}
+              className={`text-label-md px-3 py-1.5 rounded-lg transition-all duration-200 ${
+                activeView === 'patients'
+                  ? 'text-primary font-bold bg-primary/5'
+                  : 'text-on-surface-variant hover:bg-primary/5'
+              }`}
+            >
+              Patients
+            </button>
+            <button
+              onClick={() => setActiveView('shared')}
+              className={`text-label-md px-3 py-1.5 rounded-lg transition-all duration-200 ${
+                activeView === 'shared'
+                  ? 'text-primary font-bold bg-primary/5'
+                  : 'text-on-surface-variant hover:bg-primary/5'
+              }`}
+            >
+              Shared
+            </button>
+          </nav>
+          <div className="flex items-center gap-3">
             <LanguageToggle />
             <button
-              id="new-consultation-btn"
-              onClick={() => navigate('/scribe')}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all active:scale-95"
-            >
-              <Plus size={14} />
-              {t('newConsultation')}
-            </button>
-            <button
-              id="logout-btn"
               onClick={handleLogout}
-              className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+              className="p-2 text-outline hover:text-on-surface rounded-lg hover:bg-primary/5 transition-colors"
               title={t('logout')}
             >
-              <LogOut size={16} />
+              <LogOut size={18} />
+            </button>
+            <div className="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center overflow-hidden border border-primary/20">
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>person</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="pt-24 pb-8 px-container-padding max-w-7xl mx-auto w-full flex flex-col gap-stack-lg">
+        {/* Header */}
+        <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <p className="text-label-md text-outline mb-1">{dateStr}</p>
+            <h1 className="text-headline-lg-mobile md:text-headline-lg text-on-surface">{greeting}, Dr. {userProfile?.displayName}.</h1>
+          </div>
+          {/* Desktop Primary Action */}
+          <button
+            id="new-consultation-btn"
+            onClick={() => navigate('/scribe')}
+            className="hidden md:flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-full hover:bg-primary/90 transition-all shadow-btn-primary text-label-md font-medium"
+          >
+            <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>add</span>
+            {t('newConsultation')}
+          </button>
+        </section>
+
+        {/* Stats Bento Grid */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+          {/* Patients Seen */}
+          <div className="glass-card p-6 flex flex-col gap-4 relative overflow-hidden group hover:border-primary/20 transition-colors">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+            <div className="flex justify-between items-start z-10">
+              <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary">
+                <span className="material-symbols-outlined">group</span>
+              </div>
+              <span className="text-label-sm text-tertiary bg-tertiary-fixed rounded-full px-2 py-0.5 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px]">trending_up</span> 12%
+              </span>
+            </div>
+            <div className="z-10 mt-2">
+              <p className="text-label-md text-outline">{t('patients')}</p>
+              <p className="text-display-lg text-on-surface mt-1">{patients.length}</p>
+            </div>
+          </div>
+
+          {/* Reports to Review (Peach Accent) */}
+          <div className="glass-card p-6 flex flex-col gap-4 relative overflow-hidden group border-secondary-container/50 hover:border-secondary-container transition-colors">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-secondary-container/20 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+            <div className="flex justify-between items-start z-10">
+              <div className="w-10 h-10 rounded-full bg-secondary-container/30 flex items-center justify-center text-secondary">
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>article</span>
+              </div>
+              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+            </div>
+            <div className="z-10 mt-2">
+              <p className="text-label-md text-outline">{t('reports')}</p>
+              <p className="text-display-lg text-on-surface mt-1">{reports.length}</p>
+            </div>
+          </div>
+
+          {/* Shared Cases */}
+          <div className="glass-card p-6 flex flex-col gap-4 relative overflow-hidden group hover:border-primary/20 transition-colors">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-tertiary-container/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+            <div className="flex justify-between items-start z-10">
+              <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-tertiary">
+                <span className="material-symbols-outlined">share</span>
+              </div>
+            </div>
+            <div className="z-10 mt-2">
+              <p className="text-label-md text-outline">{t('shared')}</p>
+              <p className="text-display-lg text-on-surface mt-1">{sharedReports.length}</p>
+            </div>
+          </div>
+        </section>
+
+        {/* View Toggle & Content */}
+        <section className="flex flex-col gap-stack-md">
+          <div className="flex items-center justify-between">
+            <h2 className="text-headline-md text-on-surface">
+              {activeView === 'patients' ? t('patients') : activeView === 'reports' ? t('reports') : t('shared')}
+            </h2>
+            <button className="text-label-md text-primary hover:underline flex items-center gap-1">
+              View All <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </button>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-2xl mx-auto px-4 pt-6 space-y-5">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Users size={14} className="text-indigo-400" />
-              <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('patients')}</span>
-            </div>
-            <p className="text-2xl font-bold text-white tabular-nums">{patients.length}</p>
+          {/* View Toggle */}
+          <div className="flex p-1 bg-surface-container-low rounded-lg border border-outline-variant/30 gap-1">
+            <button
+              onClick={() => setActiveView('patients')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-label-md font-medium transition-all ${
+                activeView === 'patients'
+                  ? 'bg-primary-container text-on-primary-container shadow-sm'
+                  : 'text-on-surface-variant hover:bg-surface-variant/50'
+              }`}
+            >
+              <Users size={14} />
+              {t('patients')}
+            </button>
+            <button
+              onClick={() => setActiveView('reports')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-label-md font-medium transition-all ${
+                activeView === 'reports'
+                  ? 'bg-primary-container text-on-primary-container shadow-sm'
+                  : 'text-on-surface-variant hover:bg-surface-variant/50'
+              }`}
+            >
+              <FileText size={14} />
+              {t('reports')}
+            </button>
+            <button
+              onClick={() => setActiveView('shared')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-label-md font-medium transition-all ${
+                activeView === 'shared'
+                  ? 'bg-primary-container text-on-primary-container shadow-sm'
+                  : 'text-on-surface-variant hover:bg-surface-variant/50'
+              }`}
+            >
+              <Share2 size={14} />
+              {t('shared')}
+            </button>
           </div>
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <FileText size={14} className="text-purple-400" />
-              <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('reports')}</span>
-            </div>
-            <p className="text-2xl font-bold text-white tabular-nums">{reports.length}</p>
-          </div>
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Share2 size={14} className="text-teal-400" />
-              <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('shared')}</span>
-            </div>
-            <p className="text-2xl font-bold text-white tabular-nums">{sharedReports.length}</p>
-          </div>
-        </div>
 
-        {/* View Toggle */}
-        <div className="glass-card p-1.5 flex gap-1">
-          <button
-            onClick={() => setActiveView('patients')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 ${
-              activeView === 'patients'
-                ? 'bg-white/10 text-white border border-white/10'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            <Users size={14} />
-            {t('patients')}
-          </button>
-          <button
-            onClick={() => setActiveView('reports')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 ${
-              activeView === 'reports'
-                ? 'bg-white/10 text-white border border-white/10'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            <FileText size={14} />
-            {t('reports')}
-          </button>
-          <button
-            onClick={() => setActiveView('shared')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 ${
-              activeView === 'shared'
-                ? 'bg-white/10 text-white border border-white/10'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            <Share2 size={14} />
-            {t('shared')}
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="glass-card p-8 flex flex-col items-center justify-center gap-3">
-            <Loader2 size={24} className="animate-spin text-indigo-400" />
-            <p className="text-sm text-gray-400">{t('loadingData')}</p>
-          </div>
-        ) : activeView === 'patients' ? (
-          /* Patients List */
-          <div className="space-y-2">
-            {patients.length === 0 ? (
-              <div className="glass-card p-8 text-center space-y-3">
-                <AlertCircle size={24} className="text-gray-600 mx-auto" />
-                <p className="text-gray-400 text-sm">{t('noPatients')}</p>
-                <p className="text-gray-600 text-xs">{t('startConsultation')}</p>
-              </div>
-            ) : (
-              patients.map((patient, i) => (
-                <div
-                  key={i}
-                  className="glass-card p-4 flex items-center justify-between hover:bg-white/[0.06] transition-colors cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center border border-emerald-500/20 shrink-0">
-                      <span className="text-sm font-bold text-emerald-300">
+          {loading ? (
+            <div className="glass-card p-8 flex flex-col items-center justify-center gap-3">
+              <Loader2 size={24} className="animate-spin text-primary" />
+              <p className="text-sm text-on-surface-variant">{t('loadingData')}</p>
+            </div>
+          ) : activeView === 'patients' ? (
+            /* Patients List */
+            <div className="flex flex-col gap-unit">
+              {patients.length === 0 ? (
+                <div className="glass-card p-8 text-center space-y-3">
+                  <AlertCircle size={24} className="text-outline mx-auto" />
+                  <p className="text-on-surface-variant text-sm">{t('noPatients')}</p>
+                  <p className="text-outline text-xs">{t('startConsultation')}</p>
+                </div>
+              ) : (
+                patients.map((patient, i) => (
+                  <div
+                    key={i}
+                    className="glass-card p-4 flex items-center justify-between hover:shadow-glass-hover transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant text-headline-md">
                         {patient.name.charAt(0).toUpperCase()}
-                      </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-body-md font-medium text-on-surface group-hover:text-primary transition-colors truncate">{patient.name}</p>
+                        <p className="text-label-sm text-outline flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">schedule</span>
+                          {patient.reportCount} report{patient.reportCount !== 1 ? 's' : ''} • Last: {formatDate(patient.lastVisit)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{patient.name}</p>
-                      <p className="text-[11px] text-gray-500">
-                        {patient.reportCount} report{patient.reportCount !== 1 ? 's' : ''} • Last: {formatDate(patient.lastVisit)}
-                      </p>
-                    </div>
+                    <ChevronRight size={16} className="text-outline group-hover:text-primary transition-colors shrink-0" />
                   </div>
-                  <ChevronRight size={16} className="text-gray-600 group-hover:text-gray-400 transition-colors shrink-0" />
+                ))
+              )}
+            </div>
+          ) : activeView === 'reports' ? (
+            /* Reports List */
+            <div className="flex flex-col gap-unit">
+              {reports.length === 0 ? (
+                <div className="glass-card p-8 text-center space-y-3">
+                  <AlertCircle size={24} className="text-outline mx-auto" />
+                  <p className="text-on-surface-variant text-sm">{t('noReports')}</p>
+                  <p className="text-outline text-xs">{t('recordConsultation')}</p>
                 </div>
-              ))
-            )}
-          </div>
-        ) : activeView === 'reports' ? (
-          /* Reports List */
-          <div className="space-y-2">
-            {reports.length === 0 ? (
-              <div className="glass-card p-8 text-center space-y-3">
-                <AlertCircle size={24} className="text-gray-600 mx-auto" />
-                <p className="text-gray-400 text-sm">{t('noReports')}</p>
-                <p className="text-gray-600 text-xs">{t('recordConsultation')}</p>
-              </div>
-            ) : (
-              reports.map((report) => (
-                <div
-                  key={report.id}
-                  className="glass-card p-4 hover:bg-white/[0.06] transition-colors cursor-pointer group"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-white cursor-pointer" onClick={() => navigate(`/report/${report.id}`)}>{report.patientName}</p>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openShareModal(report.id); }}
-                        className="p-1.5 text-gray-500 hover:text-teal-400 rounded-lg hover:bg-teal-500/10 transition-colors"
-                        title="Share with another doctor"
-                      >
-                        <Share2 size={14} />
-                      </button>
-                      <ChevronRight size={14} className="text-gray-600 group-hover:text-gray-400 transition-colors cursor-pointer" onClick={() => navigate(`/report/${report.id}`)} />
+              ) : (
+                reports.map((report) => (
+                  <div
+                    key={report.id}
+                    className="glass-card p-4 hover:shadow-glass-hover transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-body-md font-medium text-on-surface cursor-pointer group-hover:text-primary transition-colors" onClick={() => navigate(`/report/${report.id}`)}>{report.patientName}</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openShareModal(report.id); }}
+                          className="p-1.5 text-outline hover:text-primary rounded-lg hover:bg-primary/5 transition-colors"
+                          title="Share with another doctor"
+                        >
+                          <Share2 size={14} />
+                        </button>
+                        <ChevronRight size={14} className="text-outline group-hover:text-primary transition-colors cursor-pointer" onClick={() => navigate(`/report/${report.id}`)} />
+                      </div>
+                    </div>
+                    <p className="text-label-sm text-on-surface-variant line-clamp-1" onClick={() => navigate(`/report/${report.id}`)}>{report.chiefComplaint}</p>
+                    <div className="flex items-center gap-2 mt-2" onClick={() => navigate(`/report/${report.id}`)}>
+                      <Clock size={10} className="text-outline" />
+                      <span className="text-[10px] text-outline">{formatDate(report.createdAt)}</span>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-400 line-clamp-1" onClick={() => navigate(`/report/${report.id}`)}>{report.chiefComplaint}</p>
-                  <div className="flex items-center gap-2 mt-2" onClick={() => navigate(`/report/${report.id}`)}>
-                    <Clock size={10} className="text-gray-600" />
-                    <span className="text-[10px] text-gray-600">{formatDate(report.createdAt)}</span>
-                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            /* Shared With Me */
+            <div className="flex flex-col gap-unit">
+              {sharedReports.length === 0 ? (
+                <div className="glass-card p-8 text-center space-y-3">
+                  <Share2 size={24} className="text-outline mx-auto" />
+                  <p className="text-on-surface-variant text-sm">{t('noSharedReports')}</p>
+                  <p className="text-outline text-xs">{t('otherDoctorsShare')}</p>
                 </div>
-              ))
-            )}
-          </div>
-        ) : (
-          /* Shared With Me */
-          <div className="space-y-2">
-            {sharedReports.length === 0 ? (
-              <div className="glass-card p-8 text-center space-y-3">
-                <Share2 size={24} className="text-gray-600 mx-auto" />
-                <p className="text-gray-400 text-sm">{t('noSharedReports')}</p>
-                <p className="text-gray-600 text-xs">{t('otherDoctorsShare')}</p>
-              </div>
-            ) : (
-              sharedReports.map((sr) => (
-                <div
-                  key={sr.id}
-                  onClick={() => navigate(`/report/${sr.reportId}`)}
-                  className="glass-card p-4 hover:bg-white/[0.06] transition-colors cursor-pointer group"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-white">{sr.patientName}</p>
-                    <ChevronRight size={14} className="text-gray-600 group-hover:text-gray-400 transition-colors" />
-                  </div>
-                  <p className="text-xs text-gray-400 line-clamp-1">{sr.chiefComplaint}</p>
-                  {sr.message && <p className="text-xs text-indigo-300/70 mt-1.5 italic">"{sr.message}"</p>}
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-[10px] text-teal-400/70">From: Dr. {sr.senderName || sr.senderEmail}</span>
-                    <div className="flex items-center gap-1">
-                      <Clock size={10} className="text-gray-600" />
-                      <span className="text-[10px] text-gray-600">{formatDate(sr.createdAt)}</span>
+              ) : (
+                sharedReports.map((sr) => (
+                  <div
+                    key={sr.id}
+                    onClick={() => navigate(`/report/${sr.reportId}`)}
+                    className="glass-card p-4 hover:shadow-glass-hover transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-body-md font-medium text-on-surface group-hover:text-primary transition-colors">{sr.patientName}</p>
+                      <ChevronRight size={14} className="text-outline group-hover:text-primary transition-colors" />
+                    </div>
+                    <p className="text-label-sm text-on-surface-variant line-clamp-1">{sr.chiefComplaint}</p>
+                    {sr.message && <p className="text-label-sm text-primary/70 mt-1.5 italic">"{sr.message}"</p>}
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-[10px] text-tertiary">From: Dr. {sr.senderName || sr.senderEmail}</span>
+                      <div className="flex items-center gap-1">
+                        <Clock size={10} className="text-outline" />
+                        <span className="text-[10px] text-outline">{formatDate(sr.createdAt)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
+                ))
+              )}
+            </div>
+          )}
+        </section>
+      </main>
+
+      {/* Mobile FAB */}
+      <button
+        onClick={() => navigate('/scribe')}
+        className="md:hidden fixed bottom-24 right-4 z-40 bg-primary text-on-primary w-14 h-14 rounded-full flex items-center justify-center shadow-btn-primary-hover hover:scale-105 active:scale-95 transition-all"
+      >
+        <Plus size={24} />
+      </button>
+
+      {/* Bottom Nav (Mobile) */}
+      <nav className="fixed bottom-0 w-full z-50 bg-white/70 backdrop-blur-xl border-t border-primary/10 shadow-glass md:hidden">
+        <div className="flex justify-around items-center w-full h-20 px-4 pb-safe">
+          <button className="flex flex-col items-center justify-center w-16 gap-1 group">
+            <div className="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 scale-90 transition-transform duration-150">
+              <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>dashboard</span>
+            </div>
+            <span className="text-label-sm text-on-surface font-semibold">Dashboard</span>
+          </button>
+          <button onClick={() => navigate('/scribe')} className="flex flex-col items-center justify-center w-16 gap-1 text-outline hover:bg-surface-container-high/50 transition-all rounded-lg py-1 group">
+            <span className="material-symbols-outlined text-[24px]">mic_none</span>
+            <span className="text-label-sm font-medium">Scribe</span>
+          </button>
+          <button className="flex flex-col items-center justify-center w-16 gap-1 text-outline hover:bg-surface-container-high/50 transition-all rounded-lg py-1 group">
+            <span className="material-symbols-outlined text-[24px]">group</span>
+            <span className="text-label-sm font-medium">Patients</span>
+          </button>
+          <button className="flex flex-col items-center justify-center w-16 gap-1 text-outline hover:bg-surface-container-high/50 transition-all rounded-lg py-1 group">
+            <span className="material-symbols-outlined text-[24px]">analytics</span>
+            <span className="text-label-sm font-medium">Analytics</span>
+          </button>
+        </div>
+      </nav>
 
       {/* Share Modal */}
       {shareModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="glass-card p-6 w-full max-w-sm space-y-5 animate-fade-in-up border border-white/10">
-            <h3 className="text-lg font-bold text-white text-center">{t('shareReport')}</h3>
-            <p className="text-xs text-gray-400 text-center">{t('sendReportToDoctor')}</p>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-on-surface/40 backdrop-blur-sm px-4">
+          <div className="glass-card p-6 w-full max-w-sm space-y-5 animate-fade-in-up border border-primary/10">
+            <h3 className="text-headline-md text-on-surface text-center font-semibold">{t('shareReport')}</h3>
+            <p className="text-label-sm text-on-surface-variant text-center">{t('sendReportToDoctor')}</p>
             {shareSuccess ? (
               <div className="flex flex-col items-center gap-3 py-4">
-                <Send size={28} className="text-teal-400" />
-                <p className="text-teal-300 font-medium text-sm">{t('reportSharedSuccess')}</p>
+                <Send size={28} className="text-primary" />
+                <p className="text-primary font-medium text-sm">{t('reportSharedSuccess')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -438,20 +557,20 @@ export default function DoctorDashboard() {
                   placeholder="Recipient doctor's email *"
                   value={shareEmail}
                   onChange={(e) => setShareEmail(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-teal-500/50 transition-colors"
+                  className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 text-body-md text-on-surface placeholder:text-outline-variant/70 outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
                 />
                 <textarea
                   placeholder="Optional message..."
                   value={shareMessage}
                   onChange={(e) => setShareMessage(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-teal-500/50 transition-colors min-h-[80px] resize-none"
+                  className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 text-body-md text-on-surface placeholder:text-outline-variant/70 outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors min-h-[80px] resize-none"
                 />
                 <div className="flex gap-2">
-                  <button onClick={() => setShareModalOpen(false)} className="flex-1 py-3 rounded-xl text-sm font-bold text-gray-400 bg-white/5 hover:bg-white/10 transition-colors">{t('cancel')}</button>
+                  <button onClick={() => setShareModalOpen(false)} className="flex-1 py-3 rounded-lg text-label-md font-medium text-on-surface-variant border border-primary/20 hover:bg-primary/5 transition-colors">{t('cancel')}</button>
                   <button
                     onClick={handleShare}
                     disabled={!shareEmail.trim() || shareLoading}
-                    className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-teal-500 to-emerald-600 shadow-lg shadow-teal-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 py-3 rounded-lg text-label-md font-medium text-on-primary bg-primary shadow-btn-primary transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {shareLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     {shareLoading ? t('sharing') : t('share')}

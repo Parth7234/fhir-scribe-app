@@ -1,4 +1,6 @@
-import { Navigate, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Navigate, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { App as CapacitorApp } from '@capacitor/app';
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -16,7 +18,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-indigo-400" />
+        <Loader2 size={28} className="animate-spin text-primary" />
       </div>
     );
   }
@@ -36,7 +38,7 @@ function DashboardRouter() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-indigo-400" />
+        <Loader2 size={28} className="animate-spin text-primary" />
       </div>
     );
   }
@@ -58,7 +60,7 @@ function AuthRedirect({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-indigo-400" />
+        <Loader2 size={28} className="animate-spin text-primary" />
       </div>
     );
   }
@@ -71,6 +73,46 @@ function AuthRedirect({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    let backButtonListener: any = null;
+
+    const setupBackButton = async () => {
+      try {
+        backButtonListener = await CapacitorApp.addListener('backButton', (data) => {
+          console.log('[Capacitor] Hardware back button pressed. Path:', location.pathname);
+
+          // Exit the app if we are on a root-level main page
+          const isMainPage = [
+            '/dashboard',
+            '/login',
+            '/register',
+            '/admin'
+          ].includes(location.pathname);
+
+          if (isMainPage || !data.canGoBack) {
+            CapacitorApp.exitApp();
+          } else {
+            // Otherwise, navigate back in the internal history stack
+            navigate(-1);
+          }
+        });
+      } catch (err) {
+        console.warn('Capacitor App plugin is not available on this platform:', err);
+      }
+    };
+
+    setupBackButton();
+
+    return () => {
+      if (backButtonListener) {
+        backButtonListener.remove();
+      }
+    };
+  }, [location.pathname, navigate]);
+
   return (
     <Routes>
       {/* Public routes */}

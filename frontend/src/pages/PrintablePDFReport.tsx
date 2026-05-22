@@ -1,6 +1,9 @@
+import React from 'react';
+
 /**
  * PrintablePDFReport — A white-background, professional clinical report
  * rendered offscreen and captured by html2pdf for high-quality PDF output.
+ * Cohesively styled with the premium Aether Clinical Design System (Matcha Green & Soft Peach).
  */
 
 interface PrintablePDFReportProps {
@@ -24,6 +27,21 @@ export default function PrintablePDFReport({ report }: PrintablePDFReportProps) 
     }).format(d);
   };
 
+  // Cohesive, professional clinical colors replacing the messy random rainbow
+  const colors = {
+    matcha: '#56642b',
+    matchaLight: '#f4f6f0',
+    matchaBorder: '#d3dcd0',
+    peachDark: '#7c5637',
+    peachLight: '#fdf8f4',
+    peachBorder: '#f5e6da',
+    charcoal: '#111827',
+    neutralDark: '#1e293b',
+    neutralLight: '#4b5563',
+    borderLight: '#e2e8f0',
+    white: '#ffffff',
+  };
+
   return (
     <div
       id="pdf-print-area"
@@ -31,61 +49,106 @@ export default function PrintablePDFReport({ report }: PrintablePDFReportProps) 
         width: '210mm',
         minHeight: '297mm',
         padding: '20mm 18mm',
-        backgroundColor: '#ffffff',
-        color: '#1a1a1a',
-        fontFamily: "'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif",
-        fontSize: '11pt',
+        backgroundColor: colors.white,
+        color: colors.charcoal,
+        fontFamily: "'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif",
+        fontSize: '10.5pt',
         lineHeight: '1.6',
       }}
     >
-      {/* Header */}
+      {/* Header Letterhead */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        borderBottom: '3px solid #4f46e5',
-        paddingBottom: '14px',
-        marginBottom: '20px',
+        alignItems: 'flex-end',
+        borderBottom: `2.5px solid ${colors.matcha}`,
+        paddingBottom: '16px',
+        marginBottom: '24px',
       }}>
         <div>
-          <h1 style={{
-            fontSize: '20pt',
-            fontWeight: 700,
-            color: '#4f46e5',
-            margin: 0,
-            letterSpacing: '-0.5px',
+          <span style={{
+            fontSize: '8pt',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '1.5px',
+            color: colors.peachDark,
+            display: 'block',
+            marginBottom: '4px'
           }}>
-            Clinical Report
+            ScribeFlow Clinical Portal
+          </span>
+          <h1 style={{
+            fontSize: '22pt',
+            fontWeight: 800,
+            color: colors.matcha,
+            margin: 0,
+            letterSpacing: '-0.75px',
+            lineHeight: '1.1',
+          }}>
+            Clinical Note & Summary
           </h1>
-          <p style={{ fontSize: '9pt', color: '#6b7280', margin: '4px 0 0 0' }}>
-            FHIR R4 Compliant • AI-Assisted Documentation
+          <p style={{ fontSize: '9pt', color: colors.neutralLight, margin: '6px 0 0 0', fontWeight: 500 }}>
+            FHIR R4 Compliant • AI-Assisted Medical Record
           </p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: '9pt', color: '#6b7280', margin: 0 }}>
+          <div style={{
+            display: 'inline-block',
+            padding: '4px 10px',
+            backgroundColor: colors.matchaLight,
+            borderRadius: '6px',
+            border: `1.5px solid ${colors.matchaBorder}`,
+            fontSize: '8.5pt',
+            fontWeight: 600,
+            color: colors.matcha,
+          }}>
             Generated: {formatDate(report.createdAt)}
-          </p>
+          </div>
         </div>
       </div>
 
-      {/* Patient & Doctor Info */}
+      {/* Patient & Doctor Card Block */}
       <div style={{
         display: 'flex',
         gap: '20px',
-        marginBottom: '22px',
-        padding: '14px 16px',
-        backgroundColor: '#f8fafc',
-        borderRadius: '8px',
-        border: '1px solid #e2e8f0',
+        marginBottom: '26px',
+        padding: '16px 20px',
+        backgroundColor: colors.matchaLight,
+        borderRadius: '10px',
+        border: `1.5px solid ${colors.matchaBorder}`,
       }}>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: '8pt', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '1px', margin: '0 0 4px 0' }}>Patient</p>
-          <p style={{ fontSize: '13pt', fontWeight: 600, color: '#1e293b', margin: 0 }}>{report.patientName || 'N/A'}</p>
+          <span style={{ 
+            fontSize: '7.5pt', 
+            color: colors.matcha, 
+            textTransform: 'uppercase', 
+            fontWeight: 800, 
+            letterSpacing: '1px', 
+            display: 'block',
+            marginBottom: '4px' 
+          }}>
+            Patient Name
+          </span>
+          <p style={{ fontSize: '13pt', fontWeight: 700, color: colors.neutralDark, margin: 0 }}>
+            {report.patientName || 'N/A'}
+          </p>
         </div>
         {report.doctorName && (
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '8pt', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '1px', margin: '0 0 4px 0' }}>Attending Physician</p>
-            <p style={{ fontSize: '13pt', fontWeight: 600, color: '#1e293b', margin: 0 }}>Dr. {report.doctorName}</p>
+          <div style={{ flex: 1, borderLeft: `1px solid ${colors.matchaBorder}`, paddingLeft: '20px' }}>
+            <span style={{ 
+              fontSize: '7.5pt', 
+              color: colors.matcha, 
+              textTransform: 'uppercase', 
+              fontWeight: 800, 
+              letterSpacing: '1px', 
+              display: 'block',
+              marginBottom: '4px' 
+            }}>
+              Attending Physician
+            </span>
+            <p style={{ fontSize: '13pt', fontWeight: 700, color: colors.neutralDark, margin: 0 }}>
+              Dr. {report.doctorName}
+            </p>
           </div>
         )}
       </div>
@@ -94,33 +157,34 @@ export default function PrintablePDFReport({ report }: PrintablePDFReportProps) 
         <>
           {/* Chief Complaint */}
           {notes.chief_complaint && (
-            <Section title="Chief Complaint" color="#f59e0b">
-              <p style={{ margin: 0 }}>{notes.chief_complaint}</p>
+            <Section title="Chief Complaint" color={colors.matcha}>
+              <p style={{ margin: 0, fontWeight: 500, color: colors.charcoal }}>{notes.chief_complaint}</p>
             </Section>
           )}
 
           {/* History of Present Illness */}
           {notes.history_of_present_illness && (
-            <Section title="History of Present Illness" color="#3b82f6">
-              <p style={{ margin: 0 }}>{notes.history_of_present_illness}</p>
+            <Section title="History of Present Illness" color={colors.peachDark}>
+              <p style={{ margin: 0, color: colors.neutralDark }}>{notes.history_of_present_illness}</p>
             </Section>
           )}
 
           {/* Vitals */}
           {notes.vitals?.length > 0 && (
-            <Section title="Vitals" color="#ef4444">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            <Section title="Patient Vitals" color={colors.matcha}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '6px' }}>
                 {notes.vitals.map((v: any, i: number) => (
                   <div key={i} style={{
-                    backgroundColor: '#fff1f2',
-                    border: '1px solid #fecdd3',
+                    backgroundColor: colors.peachLight,
+                    border: `1.5px solid ${colors.peachBorder}`,
                     borderRadius: '8px',
                     padding: '10px 14px',
-                    minWidth: '120px',
+                    minWidth: '125px',
+                    flex: '1 1 calc(25% - 12px)',
                   }}>
-                    <p style={{ fontSize: '8pt', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700, margin: '0 0 2px 0' }}>{v.name}</p>
-                    <p style={{ fontSize: '13pt', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                      {v.value} <span style={{ fontSize: '9pt', color: '#6b7280', fontWeight: 400 }}>{v.unit}</span>
+                    <p style={{ fontSize: '7.5pt', color: colors.peachDark, textTransform: 'uppercase', fontWeight: 800, margin: '0 0 4px 0', letterSpacing: '0.5px' }}>{v.name}</p>
+                    <p style={{ fontSize: '13pt', fontWeight: 800, color: colors.neutralDark, margin: 0 }}>
+                      {v.value} <span style={{ fontSize: '9.5pt', color: colors.neutralLight, fontWeight: 500 }}>{v.unit}</span>
                     </p>
                   </div>
                 ))}
@@ -130,45 +194,52 @@ export default function PrintablePDFReport({ report }: PrintablePDFReportProps) 
 
           {/* Examination Findings */}
           {notes.examination_findings && (
-            <Section title="Examination Findings" color="#06b6d4">
-              <p style={{ margin: 0 }}>{notes.examination_findings}</p>
+            <Section title="Clinical Examination Findings" color={colors.matcha}>
+              <p style={{ margin: 0, color: colors.neutralDark }}>{notes.examination_findings}</p>
             </Section>
           )}
 
           {/* Diagnoses */}
           {notes.diagnoses?.length > 0 && (
-            <Section title="Diagnoses" color="#f97316">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10pt' }}>
+            <Section title="Assessments & Diagnoses" color={colors.peachDark}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10pt', marginTop: '6px', border: `1px solid ${colors.borderLight}` }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f8fafc' }}>
-                    <th style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '2px solid #e2e8f0', fontSize: '8pt', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700, letterSpacing: '0.5px' }}>Diagnosis</th>
-                    <th style={{ textAlign: 'center', padding: '8px 12px', borderBottom: '2px solid #e2e8f0', fontSize: '8pt', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700, letterSpacing: '0.5px' }}>ICD Code</th>
-                    <th style={{ textAlign: 'center', padding: '8px 12px', borderBottom: '2px solid #e2e8f0', fontSize: '8pt', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700, letterSpacing: '0.5px' }}>Severity</th>
+                  <tr style={{ backgroundColor: colors.peachLight }}>
+                    <th style={{ textAlign: 'left', padding: '10px 14px', borderBottom: `2.5px solid ${colors.peachBorder}`, fontSize: '8pt', textTransform: 'uppercase', color: colors.peachDark, fontWeight: 800, letterSpacing: '0.75px' }}>Diagnosis</th>
+                    <th style={{ textAlign: 'center', padding: '10px 14px', borderBottom: `2.5px solid ${colors.peachBorder}`, fontSize: '8pt', textTransform: 'uppercase', color: colors.peachDark, fontWeight: 800, letterSpacing: '0.75px', width: '120px' }}>ICD-10 Code</th>
+                    <th style={{ textAlign: 'center', padding: '10px 14px', borderBottom: `2.5px solid ${colors.peachBorder}`, fontSize: '8pt', textTransform: 'uppercase', color: colors.peachDark, fontWeight: 800, letterSpacing: '0.75px', width: '120px' }}>Severity</th>
                   </tr>
                 </thead>
                 <tbody>
                   {notes.diagnoses.map((dx: any, i: number) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '8px 12px', fontWeight: 500 }}>{dx.name}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                        {dx.icd_code && (
+                    <tr key={i} style={{ borderBottom: `1px solid ${colors.borderLight}`, backgroundColor: i % 2 === 0 ? colors.white : '#fbfbfb' }}>
+                      <td style={{ padding: '10px 14px', fontWeight: 600, color: colors.neutralDark }}>{dx.name}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                        {dx.icd_code ? (
                           <span style={{
-                            backgroundColor: '#fff7ed',
-                            color: '#c2410c',
+                            backgroundColor: colors.peachLight,
+                            color: colors.peachDark,
+                            padding: '3px 9px',
+                            borderRadius: '4px',
+                            fontSize: '8.5pt',
+                            fontWeight: 700,
+                            border: `1.5px solid ${colors.peachBorder}`,
+                          }}>{dx.icd_code}</span>
+                        ) : '—'}
+                      </td>
+                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                        {dx.severity ? (
+                          <span style={{
+                            color: dx.severity.toLowerCase() === 'severe' ? '#b91c1c' : dx.severity.toLowerCase() === 'moderate' ? '#b45309' : '#15803d',
+                            backgroundColor: dx.severity.toLowerCase() === 'severe' ? '#fee2e2' : dx.severity.toLowerCase() === 'moderate' ? '#fef3c7' : '#dcfce7',
                             padding: '2px 8px',
                             borderRadius: '4px',
-                            fontSize: '9pt',
-                            fontWeight: 600,
-                            border: '1px solid #fed7aa',
-                          }}>{dx.icd_code}</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                        <span style={{
-                          color: dx.severity?.toLowerCase() === 'severe' ? '#dc2626' : dx.severity?.toLowerCase() === 'moderate' ? '#d97706' : '#16a34a',
-                          fontWeight: 600,
-                          fontSize: '9pt',
-                        }}>{dx.severity || '—'}</span>
+                            fontWeight: 700,
+                            fontSize: '8.5pt',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.25px',
+                          }}>{dx.severity}</span>
+                        ) : '—'}
                       </td>
                     </tr>
                   ))}
@@ -179,23 +250,23 @@ export default function PrintablePDFReport({ report }: PrintablePDFReportProps) 
 
           {/* Medications */}
           {notes.medications?.length > 0 && (
-            <Section title="Medications Prescribed" color="#10b981">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10pt' }}>
+            <Section title="Prescribed Pharmacotherapy" color={colors.matcha}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10pt', marginTop: '6px', border: `1px solid ${colors.borderLight}` }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f0fdf4' }}>
-                    <th style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '2px solid #d1fae5', fontSize: '8pt', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700, letterSpacing: '0.5px' }}>Medication</th>
-                    <th style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '2px solid #d1fae5', fontSize: '8pt', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700, letterSpacing: '0.5px' }}>Dosage</th>
-                    <th style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '2px solid #d1fae5', fontSize: '8pt', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700, letterSpacing: '0.5px' }}>Frequency</th>
-                    <th style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '2px solid #d1fae5', fontSize: '8pt', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700, letterSpacing: '0.5px' }}>Duration</th>
+                  <tr style={{ backgroundColor: colors.matchaLight }}>
+                    <th style={{ textAlign: 'left', padding: '10px 14px', borderBottom: `2.5px solid ${colors.matchaBorder}`, fontSize: '8pt', textTransform: 'uppercase', color: colors.matcha, fontWeight: 800, letterSpacing: '0.75px' }}>Medication Name</th>
+                    <th style={{ textAlign: 'left', padding: '10px 14px', borderBottom: `2.5px solid ${colors.matchaBorder}`, fontSize: '8pt', textTransform: 'uppercase', color: colors.matcha, fontWeight: 800, letterSpacing: '0.75px', width: '100px' }}>Dosage</th>
+                    <th style={{ textAlign: 'left', padding: '10px 14px', borderBottom: `2.5px solid ${colors.matchaBorder}`, fontSize: '8pt', textTransform: 'uppercase', color: colors.matcha, fontWeight: 800, letterSpacing: '0.75px' }}>Frequency</th>
+                    <th style={{ textAlign: 'left', padding: '10px 14px', borderBottom: `2.5px solid ${colors.matchaBorder}`, fontSize: '8pt', textTransform: 'uppercase', color: colors.matcha, fontWeight: 800, letterSpacing: '0.75px', width: '100px' }}>Duration</th>
                   </tr>
                 </thead>
                 <tbody>
                   {notes.medications.map((m: any, i: number) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '8px 12px', fontWeight: 600 }}>{m.name}</td>
-                      <td style={{ padding: '8px 12px' }}>{m.dosage || '—'}</td>
-                      <td style={{ padding: '8px 12px' }}>{m.frequency || '—'}</td>
-                      <td style={{ padding: '8px 12px' }}>{m.duration || '—'}</td>
+                    <tr key={i} style={{ borderBottom: `1px solid ${colors.borderLight}`, backgroundColor: i % 2 === 0 ? colors.white : '#fbfbfb' }}>
+                      <td style={{ padding: '10px 14px', fontWeight: 700, color: colors.matcha }}>{m.name}</td>
+                      <td style={{ padding: '10px 14px', color: colors.neutralDark, fontWeight: 500 }}>{m.dosage || '—'}</td>
+                      <td style={{ padding: '10px 14px', color: colors.neutralDark }}>{m.frequency || '—'}</td>
+                      <td style={{ padding: '10px 14px', color: colors.neutralDark, fontWeight: 500 }}>{m.duration || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -205,15 +276,15 @@ export default function PrintablePDFReport({ report }: PrintablePDFReportProps) 
 
           {/* Follow-up */}
           {notes.follow_up && (
-            <Section title="Follow-up" color="#6366f1">
-              <p style={{ margin: 0 }}>{notes.follow_up}</p>
+            <Section title="Follow-up Instructions" color={colors.peachDark}>
+              <p style={{ margin: 0, fontWeight: 500, color: colors.charcoal }}>{notes.follow_up}</p>
             </Section>
           )}
 
           {/* Advice */}
           {notes.advice && (
-            <Section title="Advice" color="#14b8a6">
-              <p style={{ margin: 0 }}>{notes.advice}</p>
+            <Section title="Patient Advice & Counselling" color={colors.matcha}>
+              <p style={{ margin: 0, color: colors.neutralDark }}>{notes.advice}</p>
             </Section>
           )}
         </>
@@ -221,23 +292,38 @@ export default function PrintablePDFReport({ report }: PrintablePDFReportProps) 
 
       {/* Transcript */}
       {report.transcript && (
-        <Section title="Conversation Transcript" color="#8b5cf6">
-          <p style={{ margin: 0, fontSize: '10pt', color: '#4b5563' }}>{report.transcript}</p>
+        <Section title="Clinical Consultation Transcript" color={colors.neutralLight}>
+          <div style={{
+            backgroundColor: '#fafafa',
+            border: `1px solid ${colors.borderLight}`,
+            borderRadius: '8px',
+            padding: '14px 16px',
+            fontSize: '9.5pt',
+            color: colors.neutralLight,
+            maxHeight: '200px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'pre-wrap',
+            lineHeight: '1.5',
+          }}>
+            {report.transcript}
+          </div>
         </Section>
       )}
 
       {/* Footer */}
       <div style={{
-        marginTop: '30px',
-        paddingTop: '14px',
-        borderTop: '1px solid #e2e8f0',
+        marginTop: '34px',
+        paddingTop: '16px',
+        borderTop: `1px solid ${colors.borderLight}`,
         display: 'flex',
         justifyContent: 'space-between',
         fontSize: '8pt',
-        color: '#9ca3af',
+        fontWeight: 500,
+        color: colors.neutralLight,
       }}>
-        <span>FHIR Scribe — AI-Assisted Clinical Documentation</span>
-        <span>Confidential Medical Record</span>
+        <span>FHIR Scribe Portal • Secure AI Clinical Summary</span>
+        <span style={{ color: colors.peachDark, fontWeight: 700 }}>Confidential Medical Record</span>
       </div>
     </div>
   );
@@ -245,7 +331,7 @@ export default function PrintablePDFReport({ report }: PrintablePDFReportProps) 
 
 function Section({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: '18px' }}>
+    <div style={{ marginBottom: '22px', pageBreakInside: 'avoid' }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -260,10 +346,10 @@ function Section({ title, color, children }: { title: string; color: string; chi
         }} />
         <h2 style={{
           fontSize: '11pt',
-          fontWeight: 700,
+          fontWeight: 800,
           color: '#1e293b',
           textTransform: 'uppercase',
-          letterSpacing: '0.5px',
+          letterSpacing: '0.75px',
           margin: 0,
         }}>{title}</h2>
       </div>
